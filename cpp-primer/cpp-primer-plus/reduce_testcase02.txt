@@ -1,0 +1,2 @@
+6
+bravo alpha delta charlie alpha echo

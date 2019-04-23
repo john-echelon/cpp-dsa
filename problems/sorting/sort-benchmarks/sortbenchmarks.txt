@@ -1,0 +1,3 @@
+Sample Size: 10 max value: 10
+############ Running benchmark on mergesort ############
+Time elapsed sorting (seconds): 0
