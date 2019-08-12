@@ -2,14 +2,121 @@
 #include <limits>
 #include <vector>
 #include <queue>
+#include <bits/stdc++.h>
 
 using std::vector;
 using std::queue;
 using std::pair;
 using std::priority_queue;
 
+int check_negative_cycle(vector<vector<int> > &adj, vector<vector<int> > &cost, vector<long long> &dist) {
+  //write your code here
+  for (int u = 0; u < adj.size(); u++)
+  {
+    vector<int> edgesOfU = adj[u];
+    // for all edges of v
+    for (size_t j = 0; j < edgesOfU.size(); j++) {
+      int v = edgesOfU[j];
+      if (dist[u] == std::numeric_limits<long long>::max()) {
+        continue;
+      }
+      long long distUV = dist[u] + cost[u][j];
+      if (dist[v] > distUV) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+int negative_cycle(vector<vector<int> > &adj, vector<vector<int> > &cost, int s) {
+  //write your code here
+  int n = adj.size();
+  vector<long long> dist(n, std::numeric_limits<long long>::max());
+  dist[s] = 0;
+  vector<int> prev(n, -1);
+  for (int i = 0; i < n; i++) {
+    for (int u = 0; u < n; u++) {
+      // for all edges of v
+      for (size_t j = 0; j < adj[u].size(); j++) {
+        int v = adj[u][j];
+        if (dist[u] == std::numeric_limits<long long>::max()) {
+          continue;
+        }
+        int distUV = dist[u] + cost[u][j];
+        // std::cout << "u " << u+1 << " v " << v+1 << " dist[u] " << dist[u] << " cost[u][j] " << cost[u][j] << " dist[v] " << dist[v] << std::endl;
+        if (dist[v] > distUV) {
+          dist[v] = distUV;
+          prev[v] = u;
+        }
+      }
+    }
+  }
+  return check_negative_cycle(adj, cost, dist);
+}
+void bfs(vector<vector<int>> &adj, int s, vector<int> &shortest) {
+  int n = adj.size();
+  vector<long long> dist(n, std::numeric_limits<long long>::max());
+  dist[s] = 0;
+  queue<int> bfs_queue;
+  bfs_queue.push(s);
+  while(!bfs_queue.empty()) {
+    int u = bfs_queue.front();
+    bfs_queue.pop();
+    for (int i = 0; i < adj[u].size(); i++) {
+      int v = adj[u][i];
+      if (dist[v] == std::numeric_limits<long long>::max()) {
+        bfs_queue.push(v);
+        dist[v] = dist[u] + 1;
+        shortest[v] = 0;
+      }
+    }
+  }
+}
+// embellished bellman ford
+void bellman_ford(vector<vector<int> > &adj, vector<vector<int> > &cost, int s, vector<long long> &dist, vector<int> & reachable, vector<int> & shortest) {
+  //write your code here
+  int n = adj.size();
+  dist[s] = 0;
+  vector<int> prev(n, -1);
+  // for all vertices
+  reachable[s] = 1;
+
+  std::set<int> a;
+  // run bellman_ford |V| times
+  for (int i = 0; i <= n; i++) {
+    for (int u = 0; u < n; u++) {
+      for (size_t j = 0; j < adj[u].size(); j++) {
+        int v = adj[u][j];
+        if (dist[u] == std::numeric_limits<long long>::max()) {
+          continue;
+        }
+        reachable[v] = 1;
+        long long distUV = dist[u] + cost[u][j];
+        // std::cout << "u " << u+1 << " v " << v+1 << " dist[u] " << dist[u] << " cost[u][j] " << cost[u][j] << " dist[v] " << dist[v] << std::endl;
+        if (dist[v] > distUV) {
+          dist[v] = distUV;
+          prev[v] = u;
+          // add all nodes relaxed on V-th iteration to set A. Put all nodes from A in queue Q
+          if (i >= n && reachable[v] == 1) {
+            a.insert(v);
+          }
+        }
+      }
+    }
+  }
+  // do breadth first search with queue Q and find all nodes reachable from A. All those nodes and only those can have infinite arbitrage. 
+  for (auto it = a.begin(); it != a.end(); it++) {
+    shortest[*it] = 0;
+    bfs(adj, *it, shortest);
+  }
+  // for (int i = 0; i < n; i++) {
+    // std::cout << "reachable[" << i+1  << "]: " << reachable[i] << "\n";
+    // std::cout << "shortest[" << i+1  << "]: " << shortest[i] << "\n";
+  // }
+}
 void shortest_paths(vector<vector<int> > &adj, vector<vector<int> > &cost, int s, vector<long long> &distance, vector<int> &reachable, vector<int> &shortest) {
   //write your code here
+  bellman_ford(adj, cost, s, distance, reachable, shortest);
 }
 
 int main() {
@@ -39,3 +146,36 @@ int main() {
     }
   }
 }
+/*
+Input:
+6 7
+1 2 10
+2 3 5
+1 3 100
+3 5 7
+5 4 10
+4 3 -18
+6 1 -1
+1
+Output:
+0
+10
+-
+-
+-
+*
+
+Input:
+5 4
+1 2 1
+4 1 2
+2 3 2
+3 1 -5
+4
+Output:
+-
+-
+-
+0
+*
+ */
