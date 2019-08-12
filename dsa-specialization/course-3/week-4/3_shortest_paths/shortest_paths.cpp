@@ -9,50 +9,6 @@ using std::queue;
 using std::pair;
 using std::priority_queue;
 
-int check_negative_cycle(vector<vector<int> > &adj, vector<vector<int> > &cost, vector<long long> &dist) {
-  //write your code here
-  for (int u = 0; u < adj.size(); u++)
-  {
-    vector<int> edgesOfU = adj[u];
-    // for all edges of v
-    for (size_t j = 0; j < edgesOfU.size(); j++) {
-      int v = edgesOfU[j];
-      if (dist[u] == std::numeric_limits<long long>::max()) {
-        continue;
-      }
-      long long distUV = dist[u] + cost[u][j];
-      if (dist[v] > distUV) {
-        return 1;
-      }
-    }
-  }
-  return 0;
-}
-int negative_cycle(vector<vector<int> > &adj, vector<vector<int> > &cost, int s) {
-  //write your code here
-  int n = adj.size();
-  vector<long long> dist(n, std::numeric_limits<long long>::max());
-  dist[s] = 0;
-  vector<int> prev(n, -1);
-  for (int i = 0; i < n; i++) {
-    for (int u = 0; u < n; u++) {
-      // for all edges of v
-      for (size_t j = 0; j < adj[u].size(); j++) {
-        int v = adj[u][j];
-        if (dist[u] == std::numeric_limits<long long>::max()) {
-          continue;
-        }
-        int distUV = dist[u] + cost[u][j];
-        // std::cout << "u " << u+1 << " v " << v+1 << " dist[u] " << dist[u] << " cost[u][j] " << cost[u][j] << " dist[v] " << dist[v] << std::endl;
-        if (dist[v] > distUV) {
-          dist[v] = distUV;
-          prev[v] = u;
-        }
-      }
-    }
-  }
-  return check_negative_cycle(adj, cost, dist);
-}
 void bfs(vector<vector<int>> &adj, int s, vector<int> &shortest) {
   int n = adj.size();
   vector<long long> dist(n, std::numeric_limits<long long>::max());
@@ -73,7 +29,7 @@ void bfs(vector<vector<int>> &adj, int s, vector<int> &shortest) {
   }
 }
 // embellished bellman ford
-void bellman_ford(vector<vector<int> > &adj, vector<vector<int> > &cost, int s, vector<long long> &dist, vector<int> & reachable, vector<int> & shortest) {
+void shortest_paths(vector<vector<int> > &adj, vector<vector<int> > &cost, int s, vector<long long> &dist, vector<int> &reachable, vector<int> &shortest) {
   //write your code here
   int n = adj.size();
   dist[s] = 0;
@@ -92,7 +48,6 @@ void bellman_ford(vector<vector<int> > &adj, vector<vector<int> > &cost, int s, 
         }
         reachable[v] = 1;
         long long distUV = dist[u] + cost[u][j];
-        // std::cout << "u " << u+1 << " v " << v+1 << " dist[u] " << dist[u] << " cost[u][j] " << cost[u][j] << " dist[v] " << dist[v] << std::endl;
         if (dist[v] > distUV) {
           dist[v] = distUV;
           prev[v] = u;
@@ -109,14 +64,6 @@ void bellman_ford(vector<vector<int> > &adj, vector<vector<int> > &cost, int s, 
     shortest[*it] = 0;
     bfs(adj, *it, shortest);
   }
-  // for (int i = 0; i < n; i++) {
-    // std::cout << "reachable[" << i+1  << "]: " << reachable[i] << "\n";
-    // std::cout << "shortest[" << i+1  << "]: " << shortest[i] << "\n";
-  // }
-}
-void shortest_paths(vector<vector<int> > &adj, vector<vector<int> > &cost, int s, vector<long long> &distance, vector<int> &reachable, vector<int> &shortest) {
-  //write your code here
-  bellman_ford(adj, cost, s, distance, reachable, shortest);
 }
 
 int main() {
