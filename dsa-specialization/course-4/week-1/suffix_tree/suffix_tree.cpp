@@ -3,6 +3,7 @@
 #include <string>
 #include <queue>
 #include <vector>
+#include <cstdio>
 
 using std::cin;
 using std::cout;
@@ -16,11 +17,12 @@ using namespace std;
 struct Node {
   int suffixPos;
   int suffixLength;
-  vector<Node> children;
+  Node * parent;
+  vector<Node *> children;
 };
-
 // typedef map<char, int> edges;
-typedef vector<Node> trie;
+typedef Node trie;
+int const NA = 0;
 
 /*
   For current node = root
@@ -36,30 +38,73 @@ typedef vector<Node> trie;
 */
 trie build_trie(const string & text) {
   int length = (int) text.size();
-  trie t;
-  Node firstNode = { 0, length };
-  t.push_back(firstNode);
-  for (int i = 1; i < length; i++) {
-    Node n = { i, length - i };
-    t.push_back(n);
+  trie t = { NA, NA, NULL };
+  Node * firstNode = new Node { 0, length, &t };
+  t.children.push_back(firstNode);
+  trie * current = &t;
+  int k;
+  bool contSearch = false;
+  int i = 1;
+  while (i < length) {
+    if (!contSearch)
+      k = i; // current index of subtext
+    contSearch = false;
+    // for (auto & sib : (*current).children) {
+    bool foundMatch = false;
+    for (int childIndex = 0; childIndex < current->children.size(); childIndex++) {
+      Node * sib = current->children[childIndex];
+      int j;
+      for (j = sib->suffixPos; (j < sib->suffixPos + sib->suffixLength) && k < length && text[k] == text[j]; j++, k++) {
+      }
+      int numSuffixMatch = j - sib->suffixPos;
+      // int lengthSubText = length - i;
+      if (numSuffixMatch == 0) {
+        continue;
+      }
+      foundMatch = true;
+      if (numSuffixMatch < sib->suffixLength) {
+        // TODO: Needs to handle case when splitting internal node;
+        // partial suffix match; we split nodes; cont traverse with children
+        Node * parent = current;
+        // split node under root
+        Node * tNode = new Node { sib->suffixPos, numSuffixMatch, parent };
+
+        //update sibling
+        // Node & sibRef = sib;
+        sib->suffixPos += numSuffixMatch;
+        sib->suffixLength -= numSuffixMatch;
+        sib->parent = tNode;
+
+        // attach as child under new suffix node
+        tNode->children.push_back(sib);
+        // remove current sib
+        parent->children.erase(current->children.begin() + childIndex);
+
+        // new suffix node under parent
+        parent->children.push_back(tNode);
+
+        // current = &tNode;
+        // foundMatch = true;
+        Node * tNode2 = new Node { k, length - k, tNode };
+        tNode->children.push_back(tNode2);
+        current = &t;
+        i++;
+        break;
+      } else {
+        // update currentSubText position;
+        current = sib;
+        contSearch = true;
+        break;
+      }
+    }
+    if (!foundMatch) {
+      // No match found
+      Node * tNode = new Node { k, length - k, current };
+      current->children.push_back(tNode);
+      current = &t;
+      i++;
+    } 
   }
-  // int nodeCount = 0;
-  // for (string s : patterns) {
-  //   edges * currentNode = t[0];
-  //   for (int i = 0; i < s.size(); i++) {
-  //     char symbol = s[i];
-  //     // if there is an outgoing edge from currentNode with label currentSymbol:
-  //     if ((*currentNode).find(symbol) != (*currentNode).end()) {
-  //       int nodeIndex = (*currentNode)[symbol];
-  //       currentNode = t[nodeIndex];
-  //     } else {
-  //       (*currentNode)[symbol] = t.size();
-  //       edges * newNode = new edges;
-  //       t.push_back(newNode);
-  //       currentNode = newNode;
-  //     }
-  //   }
-  // }
   return t;
 }
 
@@ -69,15 +114,15 @@ trie build_trie(const string & text) {
 vector<string> ComputeSuffixTreeEdges(const string& text) {
   vector<string> result;
   // Implement this function yourself
-  queue<Node> _queue;
+  queue<Node *> _queue;
   trie t = build_trie(text);
-  for (auto i : t) {
+  for (auto i : t.children) {
     _queue.push(i);
     while (!_queue.empty()) {
-      Node n = _queue.front();
-      result.push_back(text.substr(n.suffixPos, n.suffixLength));
+      Node * n = _queue.front();
+      result.push_back(text.substr(n->suffixPos, n->suffixLength));
       _queue.pop();
-      for (auto j : n.children) {
+      for (auto j : n->children) {
         _queue.push(j);
       }
     }
@@ -94,3 +139,24 @@ int main() {
   }
   return 0;
 }
+
+/*
+Input:
+AAA$
+
+Your output:
+A
+A$
+$
+A
+
+$
+
+Correct output:
+$
+$
+$
+A
+A
+A$
+*/
