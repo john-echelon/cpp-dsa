@@ -1,5 +1,4 @@
 #include <iostream>
-#include <map>
 #include <string>
 #include <queue>
 #include <vector>
@@ -8,7 +7,6 @@
 using std::cin;
 using std::cout;
 using std::endl;
-using std::map;
 using std::string;
 using std::queue;
 using std::vector;
@@ -51,7 +49,6 @@ trie build_trie(const string & text) {
     if (!contSearch)
       k = i; // current index of subtext
     contSearch = false;
-    // for (auto & sib : (*current).children) {
     bool foundMatch = false;
     for (int childIndex = 0; childIndex < current->children.size(); childIndex++) {
       Node * sib = current->children[childIndex];
@@ -59,14 +56,12 @@ trie build_trie(const string & text) {
       for (j = sib->suffixPos; (j < sib->suffixPos + sib->suffixLength) && k < length && text[k] == text[j]; j++, k++);
       
       int numSuffixMatch = j - sib->suffixPos;
-      // int lengthSubText = length - i;
       if (numSuffixMatch == 0) {
         continue;
       }
       foundMatch = true;
       if (numSuffixMatch < sib->suffixLength) {
-        // TODO: Needs to handle case when splitting internal node;
-        // partial suffix match; we split nodes; cont traverse with children
+        // partial suffix match; we split nodes
         Node * parent = current;
         // split node under root
         Node * tNode = new Node { sib->suffixPos, numSuffixMatch, parent };
@@ -84,7 +79,6 @@ trie build_trie(const string & text) {
         // new suffix node under parent
         parent->children.push_back(tNode);
 
-        // current = &tNode;
         // foundMatch = true;
         Node * tNode2 = new Node { k, length - k, tNode, i };
         tNode->children.push_back(tNode2);
