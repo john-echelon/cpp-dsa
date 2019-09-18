@@ -14,15 +14,17 @@ using std::queue;
 using std::vector;
 
 using namespace std;
+
+int const NA = -1;
 struct Node {
   int suffixPos;
   int suffixLength;
-  Node * parent;
+  Node * parent = NULL;
+  int startPos = NA;
   vector<Node *> children;
 };
 // typedef map<char, int> edges;
 typedef Node trie;
-int const NA = 0;
 
 /*
   For current node = root
@@ -38,8 +40,8 @@ int const NA = 0;
 */
 trie build_trie(const string & text) {
   int length = (int) text.size();
-  trie t = { NA, NA, NULL };
-  Node * firstNode = new Node { 0, length, &t };
+  trie t = { NA, NA, NULL, NA };
+  Node * firstNode = new Node { 0, length, &t, 0 };
   t.children.push_back(firstNode);
   trie * current = &t;
   int k;
@@ -54,8 +56,8 @@ trie build_trie(const string & text) {
     for (int childIndex = 0; childIndex < current->children.size(); childIndex++) {
       Node * sib = current->children[childIndex];
       int j;
-      for (j = sib->suffixPos; (j < sib->suffixPos + sib->suffixLength) && k < length && text[k] == text[j]; j++, k++) {
-      }
+      for (j = sib->suffixPos; (j < sib->suffixPos + sib->suffixLength) && k < length && text[k] == text[j]; j++, k++);
+      
       int numSuffixMatch = j - sib->suffixPos;
       // int lengthSubText = length - i;
       if (numSuffixMatch == 0) {
@@ -70,7 +72,6 @@ trie build_trie(const string & text) {
         Node * tNode = new Node { sib->suffixPos, numSuffixMatch, parent };
 
         //update sibling
-        // Node & sibRef = sib;
         sib->suffixPos += numSuffixMatch;
         sib->suffixLength -= numSuffixMatch;
         sib->parent = tNode;
@@ -85,7 +86,7 @@ trie build_trie(const string & text) {
 
         // current = &tNode;
         // foundMatch = true;
-        Node * tNode2 = new Node { k, length - k, tNode };
+        Node * tNode2 = new Node { k, length - k, tNode, i };
         tNode->children.push_back(tNode2);
         current = &t;
         i++;
@@ -99,7 +100,7 @@ trie build_trie(const string & text) {
     }
     if (!foundMatch) {
       // No match found
-      Node * tNode = new Node { k, length - k, current };
+      Node * tNode = new Node { k, length - k, current, i };
       current->children.push_back(tNode);
       current = &t;
       i++;
