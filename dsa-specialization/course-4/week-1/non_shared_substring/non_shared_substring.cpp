@@ -110,17 +110,31 @@ bool EvaluateSuffixTree(Node * t, const string & p) {
   }
   return false;
 }
-vector<Node *> GetSuffixTreeLeaves(Node * t) {
+// Optimization: Remove internal nodes that whose suffix does not contain p text (text1)
+int PruneSuffixTree(Node * t, int textLength, bool prune = false) {
   queue<Node *> _queue;
-  vector<Node *> result;
+  int result = 1;
   _queue.push(t);
   while (!_queue.empty()) {
     Node * n = _queue.front();
-    if (n->startPos != NA)
-      result.push_back(n);
     _queue.pop();
-    for (auto j : n->children) {
-      _queue.push(j);
+    int i = n->children.size() - 1;
+    vector<Node *>::iterator it = n->children.begin();
+    for (vector<Node *>::reverse_iterator rit = n->children.rbegin(); rit != n->children.rend(); ++rit, --i) {
+      Node * child = *rit;
+      Node * current = child;
+      // cout << "current: " << &(*current) << " " << (int)&(*current) << " startPos" << current->startPos
+      //   << " suffixPos " << current->suffixPos << " suffixLength " << current->suffixLength << endl;
+      if (!prune) {
+        ++result;
+        _queue.push(child);
+      }
+      else if ((child->startPos != NA || (child->startPos == NA && child->suffixPos < textLength))) {
+        ++result;
+        _queue.push(child);
+      }
+      else 
+        n->children.erase(it + i, it + i + 1);
     }
   }
   return result;
@@ -130,6 +144,9 @@ string solve (string p, string q)
   string text = p + "#" + q + "$"; 
   trie t = build_trie(text);
   Node * parent = &t;
+  // cout << "p length " << p.length() << endl;
+  // cout << "size " << PruneSuffixTree(parent, p.length()) << endl;
+  // cout << "prune size " << PruneSuffixTree(parent, p.length(), true) << endl;
   stack<Node *> _stack;
   vector<Node *> leaves;
   map<int, int> cache;
@@ -143,6 +160,7 @@ string solve (string p, string q)
       // cout << text.substr(i, j) << "( " << i << ", " << j << " )" << endl;
       int currentPos = i;
       int currentLength = j;
+      // Optimization: Avoid previously matched substrings from repeated traversal.
       string key = text.substr(i, j);
       if (pattern_cache.find(key) != pattern_cache.end()) {
         pattern_cache[key] = pattern_cache[key]++;
@@ -197,8 +215,9 @@ string solve (string p, string q)
                 // cout << "found a partial match, cont searching\n";
                 currentLength = delta;
                 currentPos += current->suffixLength;
-                for (auto * child : current->children)
-                  _stack.push(child);
+                for (auto * child : current->children) {
+                    _stack.push(child);
+                }
               }
             }
           }
