@@ -93,23 +93,36 @@ trie build_trie(const string & text) {
   return t;
 }
 
-vector<Node *> GetSuffixTreeLeaves(Node * t) {
+bool EvaluateSuffixTree(Node * t, const string & p) {
   queue<Node *> _queue;
-  vector<Node *> result;
-  // if (t->startPos != NA)
-  //   result.push_back(n);
-  // for (auto i : t->children) {
-    // _queue.push(i);
   _queue.push(t);
-    while (!_queue.empty()) {
-      Node * n = _queue.front();
-      if (n->startPos != NA)
-        result.push_back(n);
-      _queue.pop();
-      for (auto j : n->children) {
+  while (!_queue.empty()) {
+    Node * n = _queue.front();
+    if (n->startPos != NA && n->startPos > p.length()) 
+      return true;
+    _queue.pop();
+    for (auto j : n->children) {
+      int startingPos = j->startPos != NA ? j->startPos : j->suffixPos; 
+      if (j->startPos != NA || j->startPos == NA && startingPos < p.length()) {
         _queue.push(j);
       }
     }
+  }
+  return false;
+}
+vector<Node *> GetSuffixTreeLeaves(Node * t) {
+  queue<Node *> _queue;
+  vector<Node *> result;
+  _queue.push(t);
+  while (!_queue.empty()) {
+    Node * n = _queue.front();
+    if (n->startPos != NA)
+      result.push_back(n);
+    _queue.pop();
+    for (auto j : n->children) {
+      _queue.push(j);
+    }
+  }
   return result;
 }
 string solve (string p, string q)
@@ -120,27 +133,45 @@ string solve (string p, string q)
   stack<Node *> _stack;
   vector<Node *> leaves;
   map<int, int> cache;
+  map<string, int> pattern_cache;
   int i = 0;
   int numEvaluations = 0;
   int numEvaluationsAvoided = 0;
+  int numTraversalsAvoided = 0;
   for (int j = 1; i + j <= p.length(); j++, i = 0) {
     for (; i + j <= p.length(); i++) {
       // cout << text.substr(i, j) << "( " << i << ", " << j << " )" << endl;
       int currentPos = i;
       int currentLength = j;
-      for (int h = 0; h < parent->children.size(); h++) {
-        _stack.push(parent->children[h]);
+      string key = text.substr(i, j);
+      if (pattern_cache.find(key) != pattern_cache.end()) {
+        pattern_cache[key] = pattern_cache[key]++;
+        numEvaluationsAvoided++;
+        continue;
+      } else {
+        pattern_cache[key] = 1;
+        numEvaluations++;
+      }
+      vector<Node *> & children = parent->children;
+      for (int h = 0; h < children.size(); h++) {
+        _stack.push(children[h]);
         while(!_stack.empty()) {
           Node * current = _stack.top();
           _stack.pop();
+          int startingPos = current->startPos != NA ? current->startPos : current->suffixPos; 
+          if (startingPos >= p.length()) {
+            numTraversalsAvoided++;
+            continue;
+          }
           if (current->startPos != NA) {
             // cout << "found a leaf\n";
             if (current->suffixLength -1 >= j && text.substr(i, j) == text.substr(current->startPos, j)) {
               // found a match at a leaf; evaluate leaf
               // cout << "found a leaf match\n";
               if (current->startPos < p.length()) {
-                // cout << "numEvaluations: " << numEvaluations << endl;
+                // cout << "leaf.numEvaluations: " << numEvaluations << endl;
                 // cout << "numEvaluationsAvoided: " << numEvaluationsAvoided << endl;
+                // cout << "numTraversalsAvoided: " << numTraversalsAvoided << endl;
                 return text.substr(i, j);
               }
             }
@@ -150,29 +181,14 @@ string solve (string p, string q)
             if (text.substr(currentPos, minLength) == text.substr(current->suffixPos, minLength)) {
               if (delta <= 0) {
                 // found a match at internal node, evaluate its leaves
-                cout << "found a internal node match, evaluate leaves ... \n";
-                cout << "current: " << &(*current) << " " << (int)&(*current) << " startPos" << current->startPos
-                  << " suffixPos " << current->suffixPos << " suffixLength " << current->suffixLength << endl;
-                int key = (int)&(*current);
-                if (cache.find(key) != cache.end()) {
-                  cache[key] = cache[key]++;
-                  numEvaluationsAvoided++;
-                  continue;
-                } else {
-                  cache[key] = 1;
-                }
-                leaves = GetSuffixTreeLeaves(current);
-                numEvaluations++;
-                bool matchFoundAfterHash = false;
-                for (auto * leaf : leaves) {
-                  // cout << "leaves: " << leaf->startPos << " suffixPos " << leaf->suffixPos << " suffixLength " << leaf->suffixLength << endl;
-                  if (leaf->startPos > p.length())
-                    matchFoundAfterHash = true;
-                }
+                // cout << "found a internal node match, evaluate leaves ... \n";
+                // cout << "current: " << &(*current) << " " << (int)&(*current) << " startPos" << current->startPos
+                //   << " suffixPos " << current->suffixPos << " suffixLength " << current->suffixLength << endl;
+                bool matchFoundAfterHash = EvaluateSuffixTree(current, p);
                 if (!matchFoundAfterHash) {
-                  // cout << "no match!\n";
-                  // cout << "numEvaluations: " << numEvaluations << endl;
+                  // cout << "internal.numEvaluations: " << numEvaluations << endl;
                   // cout << "numEvaluationsAvoided: " << numEvaluationsAvoided << endl;
+                  // cout << "numTraversalsAvoided: " << numTraversalsAvoided << endl;
                   return text.substr(i, j);
                 }
                 // move to next node in stack
@@ -192,9 +208,9 @@ string solve (string p, string q)
   }
 
 	string result = p;
-
-  // cout << "numEvaluations: " << numEvaluations << endl;
+  // cout << "none.numEvaluations: " << numEvaluations << endl;
   // cout << "numEvaluationsAvoided: " << numEvaluationsAvoided << endl;
+  // cout << "numTraversalsAvoided: " << numTraversalsAvoided << endl;
 	return result;
 }
 
