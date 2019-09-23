@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -6,19 +7,28 @@
 using std::cin;
 using std::cout;
 using std::endl;
+using std::memset;
 using std::sort;
 using std::string;
 using std::vector;
 
+bool comparisonFunc(const char *c1, const char *c2)
+{
+    return strcmp(c1, c2) < 0;
+}
+
 string InverseBWT(const string& bwt) {
   string result = "";
   int length = bwt.length();
-  vector<string> matrix = vector<string>(length, string(length, ' '));
+  vector<char *> matrix = vector<char *>(length);
   for (int i = 0; i < length; i++) {
+    matrix[i] = new char [length + 1];
+    memset(matrix[i], 0, length + 1);
     matrix[i][0] = bwt[i]; 
+    // matrix[i][length] = '\0';
   }
   for (int i = 1; i <= length ; i++) {
-    sort(matrix.begin(), matrix.end());
+    sort(matrix.begin(), matrix.end(), comparisonFunc);
     // cout << "sorted matrix\n";
     // for (auto & str : matrix) {
     //   cout << str << endl;
@@ -35,11 +45,14 @@ string InverseBWT(const string& bwt) {
     }
     // cout << "matrix\n";
     // for (auto & str : matrix) {
-    //   cout << str << endl;
+      // cout << str << endl;
     // }
   }
-  result = matrix[0].substr(1, length-1) + '$';
+  result = string(matrix[0]).substr(1, length-1) + '$';
   // write your code here
+  for (auto & str : matrix) {
+    delete [] str;
+  }
 
   return result;
 }
