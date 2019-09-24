@@ -13,10 +13,11 @@ using std::sort;
 using std::string;
 using std::vector;
 
-char buffer[5000];
-char buffer2[5000];
-unsigned char buffer3[sizeof(int) * 5000 * 4];
-unsigned char buffer4[sizeof(int) * 4 * 5000];
+static const int bufferSize = 5000000;
+char buffer[bufferSize];
+char buffer2[bufferSize];
+unsigned char buffer3[sizeof(int) * bufferSize * 4];
+unsigned char buffer4[sizeof(int) * 4 * bufferSize];
 
 bool comparisonFunc(const char *c1, const char *c2)
 {
