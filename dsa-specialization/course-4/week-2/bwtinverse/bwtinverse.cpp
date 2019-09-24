@@ -15,11 +15,8 @@ using std::vector;
 
 char buffer[5000];
 char buffer2[5000];
-// char buffer3[5000 * 4];
-char b1[5000];
-char b2[5000];
-char b3[5000];
-char b4[5000];
+unsigned char buffer3[sizeof(int) * 5000 * 4];
+unsigned char buffer4[sizeof(int) * 4 * 5000];
 
 bool comparisonFunc(const char *c1, const char *c2)
 {
@@ -48,86 +45,54 @@ string InverseBWT(const string& bwt) {
   // vector<char> result;
   int length = bwt.length();
   // char result[length + 1] = {0};
+  // cout << "length " << length << endl;
   char * result;
   result = new(buffer) char[length + 1];
-  int n_mer = 2;
   int unique_symbols = 4;
   // vector<char *> matrix = vector<char *>(length);
   int count[unique_symbols] = {0}; // [A, C, G, T]
   int count2[unique_symbols] = {0}; // [A, C, G, T]
 
-  int occurrence[length][unique_symbols] = {0};
-  // vector<vector<int>> lastToFirst = vector<vector<int>>(unique_symbols, vector<int>());
-  vector<int *> lastToFirst = vector<int *>(unique_symbols);
-  // char bwt_copy[length] = {0};
+  int * occurrence = new(buffer3) int [length * unique_symbols];
+  int * lastToFirst = new(buffer4) int [unique_symbols * length];
   char * bwt_copy = new(buffer2) char[length + 1];
 
   strcpy(bwt_copy, bwt.c_str());
   sort(bwt_copy, bwt_copy + length);
   for (int i = 0; i < length; i++) {
-    // matrix[i] = new char [n_mer + 1];
-    // memset(matrix[i], 0, n_mer + 1);
-    // matrix[i][1] = bwt[i];
-    // matrix[i][2] = '\0';
     for (int j = 0; j < unique_symbols; ++j) {
-      occurrence[i][j] = count[j];
-      // allocating buffer memory to lastToFirst
-      // lastToFirst[j] = new(buffer3 + j * 5000) int [length];
-      if (j == 0) {
-        lastToFirst[j] = new(b1) int [length];
-      }
-      if (j == 1) {
-        lastToFirst[j] = new(b2) int [length];
-      }
-      if (j == 2) {
-        lastToFirst[j] = new(b3) int [length];
-      }
-      if (j == 3) {
-        lastToFirst[j] = new(b4) int [length];
-      }
+      int a1 = count[j];
+      int a2 = i + unique_symbols * j;
+      occurrence[i * unique_symbols + j] = count[j];
     }
     int idx = getCountIndex(bwt[i]);
     if (idx != -1)
       ++count[idx];
   }
   // for (int i = 0; i < length; i++) {
-  //   matrix[i][0] = bwt_copy[i]; 
-  // }
-  // cout << "matrix\n";
-  // for (auto & str : matrix) {
-  //   cout << str << endl;
+  //   for (int j = 0; j < unique_symbols; ++j) {
+  //     cout << occurrence[i + unique_symbols * j] << " ";
+  //   }
+  //   cout << endl;
   // }
   for (int i = 1; i < length; i++) {
-    int idx = 0;
-    if (i != 2339)
-      idx = getCountIndex(bwt_copy[i]);
-    if (i == 2339) {
-      idx = getCountIndex(bwt_copy[i]);
-      int c1 = count2[idx];
-      int l1 = lastToFirst[idx][c1];
-      int l2 = lastToFirst[idx][c1 + 1];
-    }
-    lastToFirst[idx][count2[idx]++] = i;
+    int idx = getCountIndex(bwt_copy[i]);
+    lastToFirst[idx * length + count2[idx]] = i;
+    ++count2[idx];
   }
   int i = 0;
   int resultIdx = length - 1;
   result[resultIdx--] = '$';
-  // result.push_back('$');
   while (bwt[i] != '$') {
-    // cout << "firstCol " << matrix[i][0] << " lastCol " << matrix[i][1];
-    int lastColSymbol = bwt[i];
+    char lastColSymbol = bwt[i];
     if (lastColSymbol == '$') {
       i = 0;
-      // cout << " lastToFirst 0\n";
-      // result.push_back(bwt_copy[i]);
       result[resultIdx--] = bwt_copy[i];
       continue;
     }
     int symbolIdx = getCountIndex(lastColSymbol);
-    int oIdx = occurrence[i][symbolIdx];
-    // cout << " lastToFirst " <<  lastToFirst[symbolIdx][oIdx] << endl;
-    i = lastToFirst[symbolIdx][oIdx];
-    // result.push_back(bwt_copy[i]);
+    int oIdx = occurrence[i * unique_symbols + symbolIdx];
+    i = lastToFirst[symbolIdx * length + oIdx];
     result[resultIdx--] = bwt_copy[i];
   }
   return string(result);
