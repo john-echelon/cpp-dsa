@@ -41,23 +41,17 @@ int getCountIndex(const char & c) {
     return 3;
   return -1;
 }
-// TODO: Try char[] instead of vector<char> result, and or use buffers, consider mappers, convert bwt to char array for sort
 string InverseBWT(const string& bwt) {
-  // vector<char> result;
   int length = bwt.length();
-  // char result[length + 1] = {0};
-  // cout << "length " << length << endl;
   char * result;
   result = new(buffer) char[length + 1];
   int unique_symbols = 4;
-  // vector<char *> matrix = vector<char *>(length);
   int count[unique_symbols] = {0}; // [A, C, G, T]
   int count2[unique_symbols] = {0}; // [A, C, G, T]
 
   int * occurrence = new(buffer3) int [length * unique_symbols];
   int * lastToFirst = new(buffer4) int [unique_symbols * length];
   char * bwt_copy = new(buffer2) char[length + 1];
-
   strcpy(bwt_copy, bwt.c_str());
   sort(bwt_copy, bwt_copy + length);
   for (int i = 0; i < length; i++) {
@@ -70,12 +64,6 @@ string InverseBWT(const string& bwt) {
     if (idx != -1)
       ++count[idx];
   }
-  // for (int i = 0; i < length; i++) {
-  //   for (int j = 0; j < unique_symbols; ++j) {
-  //     cout << occurrence[i + unique_symbols * j] << " ";
-  //   }
-  //   cout << endl;
-  // }
   for (int i = 1; i < length; i++) {
     int idx = getCountIndex(bwt_copy[i]);
     lastToFirst[idx * length + count2[idx]] = i;

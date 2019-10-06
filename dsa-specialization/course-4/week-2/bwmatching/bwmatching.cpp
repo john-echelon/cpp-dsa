@@ -7,6 +7,8 @@
 #include <vector>
 
 using std::cin;
+using std::cout;
+using std::endl;
 using std::istringstream;
 using std::map;
 using std::string;
@@ -24,6 +26,36 @@ void PreprocessBWT(const string& bwt,
                    map<char, int>& starts, 
                    map<char, vector<int> >& occ_count_before) {
   // Implement this function yourself
+  string firstCol = bwt;
+  sort(firstCol.begin(), firstCol.end());
+  // cout << "firstCol" << firstCol << endl;
+  for (int i = 0; i < firstCol.length(); i++) {
+    const char & f = firstCol[i];
+    auto search = starts.find(f);
+    if (search == starts.end()) {
+      starts[f] = i;
+    }
+  }
+  map<char, int> counter;
+  for (int i = 0; i <= bwt.length(); i++) {
+    for (auto it = starts.begin(); it != starts.end(); ++it) {
+      const char & symbol = (*it).first;
+      if (i == 0) {
+        // cout << " symbol " << symbol << " " << (*it).second << endl;
+        counter[symbol] = 0;
+      }
+      occ_count_before[symbol].push_back(counter[symbol]);
+    }
+    ++counter[bwt[i]];
+  }
+  // for (int i = 0; i <= bwt.length(); i++) {
+  //   cout << i << ": ";
+  //   for (auto it = starts.begin(); it != starts.end(); ++it) {
+  //     const char & symbol = (*it).first;
+  //     cout << occ_count_before[symbol][i] << ", ";
+  //   }
+  //   cout << endl;
+  // }
 }
 
 // Compute the number of occurrences of string pattern in the text
@@ -31,9 +63,26 @@ void PreprocessBWT(const string& bwt,
 // information we get from the preprocessing stage - starts and occ_counts_before.
 int CountOccurrences(const string& pattern, 
                      const string& bwt, 
-                     const map<char, int>& starts, 
-                     const map<char, vector<int> >& occ_count_before) {
+                     map<char, int>& starts, 
+                     map<char, vector<int> >& occ_count_before) {
   // Implement this function yourself
+  int top = 0, bottom = bwt.length() - 1;
+  int patternIdx = pattern.length() - 1;
+  while (top <= bottom) {
+    if (patternIdx >= 0) {
+      char symbol = pattern[patternIdx--]; 
+      const vector<int> & occ = occ_count_before[symbol];
+      if(!occ.empty() && (occ[top] > 0 || occ[bottom + 1] > 0)) {
+        top = starts[symbol] + occ[top];
+        bottom = starts[symbol] + occ[bottom + 1] - 1;
+        // cout << "top " << top << " bottom " << bottom << endl;
+      } else {
+        return 0;
+      }
+    } else {
+      return bottom - top + 1;
+    }
+  }
   return 0;
 }
      

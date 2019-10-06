@@ -18,16 +18,42 @@ using std::vector;
 using namespace std;
 
 int const NA = -1;
+const unsigned char left_suffix = 0x1;
+const unsigned char right_suffix = 0x2;
 struct Node {
   int suffixPos;
   int suffixLength;
   Node * parent = NULL;
   int startPos = NA;
   vector<Node *> children;
+  unsigned char lr = 0;
+  int depth = 0;
 };
 typedef Node trie;
+
+void update_parent_lr(Node * current) {
+  while(current->parent != NULL) {
+    current->parent->lr |= current->lr;
+    current = current->parent;
+  }
+}
+void update_lr(Node * current, int textLength, int pLen) {
+  int actualStart = current->startPos != NA ? current->startPos : current->suffixPos;
+  int actualLen = current->startPos != NA ? textLength - actualStart : current->suffixLength;
+  int endPos = actualStart + actualLen - 1;
+  if (actualStart < pLen) {
+    current->lr|= left_suffix;
+    // current->parent->lr|= left_suffix;
+  }
+  if (actualStart >= pLen) {
+    current->lr |= right_suffix;
+    // current->parent->lr|= right_suffix;
+  }
+  update_parent_lr(current); 
+}
 trie build_trie(const string & text) {
   int length = (int) text.size();
+  int pLen = text.find('#');
   trie t = { NA, NA, NULL, NA };
   Node * firstNode = new Node { 0, length, &t, 0 };
   t.children.push_back(firstNode);
@@ -55,14 +81,17 @@ trie build_trie(const string & text) {
         Node * parent = current;
         // split node under root
         Node * tNode = new Node { sib->suffixPos, numSuffixMatch, parent };
-
+        tNode->depth = parent->depth + 1;
+        update_lr(tNode, text.length(), pLen); 
         //update sibling
         sib->suffixPos += numSuffixMatch;
         sib->suffixLength -= numSuffixMatch;
         sib->parent = tNode;
+        sib->depth = parent->depth + 1;
 
         // attach as child under new suffix node
         tNode->children.push_back(sib);
+        update_lr(sib, text.length(), pLen); 
         // remove current sib
         parent->children.erase(current->children.begin() + childIndex);
 
@@ -72,6 +101,8 @@ trie build_trie(const string & text) {
         // foundMatch = true;
         Node * tNode2 = new Node { k, length - k, tNode, i };
         tNode->children.push_back(tNode2);
+        tNode2->depth = parent->depth + 1;
+        update_lr(tNode2, text.length(), pLen); 
         current = &t;
         i++;
         break;
@@ -85,7 +116,9 @@ trie build_trie(const string & text) {
     if (!foundMatch) {
       // No match found
       Node * tNode = new Node { k, length - k, current, i };
+      tNode->depth = tNode->parent->depth + 1;
       current->children.push_back(tNode);
+      update_lr(tNode, text.length(), pLen); 
       current = &t;
       i++;
     } 
@@ -98,6 +131,11 @@ bool EvaluateSuffixTree(Node * t, const string & p) {
   _queue.push(t);
   while (!_queue.empty()) {
     Node * n = _queue.front();
+    Node * current = n;
+    cout << "evaluating.. " << &(*n) << endl;
+    cout << "current: " << &(*current) << " parent " << &(*current->parent) << " startPos" << current->startPos
+      << " suffixPos " << current->suffixPos << " suffixLength " << current->suffixLength << " depth " << current->depth
+      << " left " << (current->lr & left_suffix) <<" right " << (current->lr & right_suffix) << endl;
     if (n->startPos != NA && n->startPos > p.length()) 
       return true;
     _queue.pop();
@@ -110,8 +148,17 @@ bool EvaluateSuffixTree(Node * t, const string & p) {
   }
   return false;
 }
+auto cmp = [] (Node * left, Node * right) { 
+if (left->depth == right->depth) {
+  int lStart = left->startPos != NA ? left->startPos : left->suffixPos;
+  int rStart = right->startPos != NA ? right->startPos : right->suffixPos;
+  return lStart > rStart;
+}
+return left->depth > right->depth;
+};
 // Optimization: Remove internal nodes that whose suffix does not contain p text (text1)
-int PruneSuffixTree(Node * t, int textLength, bool prune = false) {
+void PruneSuffixTree(Node * t, string & text, int pLength, priority_queue<Node *, vector<Node *>, decltype(cmp)> & patterns) {
+  int textLength = text.length();
   queue<Node *> _queue;
   int result = 1;
   _queue.push(t);
@@ -123,29 +170,71 @@ int PruneSuffixTree(Node * t, int textLength, bool prune = false) {
     for (vector<Node *>::reverse_iterator rit = n->children.rbegin(); rit != n->children.rend(); ++rit, --i) {
       Node * child = *rit;
       Node * current = child;
-      // cout << "current: " << &(*current) << " " << (int)&(*current) << " startPos" << current->startPos
-      //   << " suffixPos " << current->suffixPos << " suffixLength " << current->suffixLength << endl;
-      if (!prune) {
-        ++result;
-        _queue.push(child);
+      _queue.push(child);
+      int actualStart = current->startPos != NA ? current->startPos : current->suffixPos;
+      int actualLen = current->startPos != NA ? textLength - actualStart : current->suffixLength;
+      cout << "current: " << &(*current) << " parent " << &(*current->parent) << ": "<< text.substr(actualStart, actualLen) << " startPos" << current->startPos
+        << " suffixPos " << current->suffixPos << " suffixLength " << current->suffixLength << " depth " << current->depth
+        << " left " << (current->lr & left_suffix) <<" right " << (current->lr & right_suffix) << endl;
+      if (((current->lr & left_suffix) == left_suffix) && ((current->lr & right_suffix) != right_suffix) ||
+      ((current->lr & left_suffix) != left_suffix) && ((current->lr & right_suffix) != right_suffix)
+      ) {
+        cout << "Added\n";
+        patterns.push(current);
       }
-      else if ((child->startPos != NA || (child->startPos == NA && child->suffixPos < textLength))) {
-        ++result;
-        _queue.push(child);
-      }
-      else 
-        n->children.erase(it + i, it + i + 1);
+      // if (!prune) {
+      //   ++result;
+      //   _queue.push(child);
+      // }
+      // else if ((child->startPos != NA || (child->startPos == NA && child->suffixPos < pLength))) {
+      //   ++result;
+      //   _queue.push(child);
+      // }
+      // else 
+      //   n->children.erase(it + i, it + i + 1);
     }
   }
-  return result;
+  // return result;
 }
+int reduce(string p, string q) {
+  int dupes = 1, prev = 1;
+  for (int i = 1; i < p.length() && i < q.length(); i++) {
+    if (p[i] == p[i - 1] && p[i-1] == q[i-1]) {
+      ++dupes;
+    }
+    else {
+      return 1;
+    }
+  }
+  return dupes;
+}
+
+bool allCharactersSame(string s) 
+{ 
+  return (s.find_first_not_of(s[0]) == string::npos); 
+} 
 string solve (string p, string q)
 {
   string text = p + "#" + q + "$"; 
+  // int dupes = reduce(p, q);
+  // // cout << "dupes " << dupes << endl;
+  // string q2 = q;
+  // reverse(q2.begin(), q2.end());
+  // dupes = max(dupes, reduce(p, q2));
+  // // cout << "dupes " << dupes << endl;
+  // cout << "p length " << p.length() << endl;
   trie t = build_trie(text);
   Node * parent = &t;
-  // cout << "p length " << p.length() << endl;
-  // cout << "size " << PruneSuffixTree(parent, p.length()) << endl;
+  priority_queue<Node *, vector<Node *>, decltype(cmp)> patterns(cmp);
+
+  bool allSame = allCharactersSame(p);
+  if (allSame) {
+    Node * tNode = new Node{ 0, (int) p.length() };
+    patterns.push(tNode);
+  } else {
+    PruneSuffixTree(parent, text, p.length(), patterns);
+  }
+  // cout << "size " << PruneSuffixTree(parent, text, p.length())<< endl;
   // cout << "prune size " << PruneSuffixTree(parent, p.length(), true) << endl;
   stack<Node *> _stack;
   vector<Node *> leaves;
@@ -155,9 +244,28 @@ string solve (string p, string q)
   int numEvaluations = 0;
   int numEvaluationsAvoided = 0;
   int numTraversalsAvoided = 0;
-  for (int j = 1; i + j <= p.length(); j++, i = 0) {
-    for (; i + j <= p.length(); i++) {
-      // cout << text.substr(i, j) << "( " << i << ", " << j << " )" << endl;
+  // while(!patterns.empty()) {
+  //   auto * pattern = patterns.top();
+  //   patterns.pop(); 
+  //   int actualStart = pattern->startPos != NA ? pattern->startPos : pattern->suffixPos;
+  //   i = actualStart;
+  //   int actualLen = pattern->startPos != NA ? text.length() - actualStart : pattern->suffixLength;
+  //   cout << "pattern: " << &(*pattern) << " parent " << &(*pattern->parent) << ": "<< text.substr(actualStart, actualLen) << " startPos" << pattern->startPos
+  //     << " suffixPos " << pattern->suffixPos << " suffixLength " << pattern->suffixLength << " depth " << pattern->depth
+  //     << " left " << (pattern->lr & left_suffix) <<" right " << (pattern->lr & right_suffix) << endl;
+  // }
+  while(!patterns.empty()) {
+    auto * pattern = patterns.top();
+    patterns.pop(); 
+    int actualStart = pattern->startPos != NA ? pattern->startPos : pattern->suffixPos;
+    i = actualStart;
+    int actualLen = pattern->startPos != NA ? text.length() - actualStart : pattern->suffixLength;
+    cout << "pattern: " << &(*pattern) << " parent " << &(*pattern->parent) << ": "<< text.substr(actualStart, actualLen) << " startPos" << pattern->startPos
+      << " suffixPos " << pattern->suffixPos << " suffixLength " << pattern->suffixLength << " depth " << pattern->depth
+      << " left " << (pattern->lr & left_suffix) <<" right " << (pattern->lr & right_suffix) << endl;
+    for (int j = 1; i + j <= p.length(); j++, i = actualStart) {
+    for (; i + j <= p.length();++i) {
+      cout << text.substr(i, j) << "( " << i << ", " << j << " )" << endl;
       int currentPos = i;
       int currentLength = j;
       // Optimization: Avoid previously matched substrings from repeated traversal.
@@ -165,6 +273,7 @@ string solve (string p, string q)
       if (pattern_cache.find(key) != pattern_cache.end()) {
         pattern_cache[key] = pattern_cache[key]++;
         numEvaluationsAvoided++;
+        // cout << "skipped! \n";
         continue;
       } else {
         pattern_cache[key] = 1;
@@ -202,8 +311,11 @@ string solve (string p, string q)
                 // cout << "found a internal node match, evaluate leaves ... \n";
                 // cout << "current: " << &(*current) << " " << (int)&(*current) << " startPos" << current->startPos
                 //   << " suffixPos " << current->suffixPos << " suffixLength " << current->suffixLength << endl;
-                bool matchFoundAfterHash = EvaluateSuffixTree(current, p);
-                if (!matchFoundAfterHash) {
+                // bool matchFoundAfterHash = EvaluateSuffixTree(current, p);
+                // cout << "matchFound " << matchFoundAfterHash << " left " << (current->lr & left_suffix) <<" right " << (current->lr & right_suffix) << endl;
+                // if (!matchFoundAfterHash) {
+                if (((current->lr & left_suffix) == left_suffix) && ((current->lr & right_suffix) != right_suffix) ||
+                  ((current->lr & left_suffix) != left_suffix) && ((current->lr & right_suffix) != right_suffix)) {
                   // cout << "internal.numEvaluations: " << numEvaluations << endl;
                   // cout << "numEvaluationsAvoided: " << numEvaluationsAvoided << endl;
                   // cout << "numTraversalsAvoided: " << numTraversalsAvoided << endl;
@@ -223,7 +335,11 @@ string solve (string p, string q)
           }
         }
       }
+      if (allSame) {
+        break;
+      }
     }
+  }
   }
 
 	string result = p;
