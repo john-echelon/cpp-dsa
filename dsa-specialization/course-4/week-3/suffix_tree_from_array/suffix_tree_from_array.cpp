@@ -1,16 +1,31 @@
 #include <algorithm>
 #include <cstdio>
+#include <iostream>
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
+using std::cin;
+using std::cout;
+using std::endl;
 using std::make_pair;
 using std::map;
 using std::pair;
 using std::string;
 using std::vector;
 
+struct SuffixTreeNode {
+  SuffixTreeNode * parent;
+  int stringDepth;
+  int edgeStart;
+  int edgeEnd;
+  int nodeIndex;
+  bool midNode;
+  int displayEdgeStart;
+  int displayEdgeEnd;
+  map<char, SuffixTreeNode*> children;
+};
 // Data structure to store edges of a suffix tree.
 struct Edge {
   // The ending node of this edge.
@@ -25,7 +40,64 @@ struct Edge {
   Edge(int node_, int start_, int end_) : node(node_), start(start_), end(end_) {}
   Edge(const Edge& e) : node(e.node), start(e.start), end(e.end) {}
 };
-
+SuffixTreeNode * CreateNewLeaf(SuffixTreeNode * node, const string& text, int suffix) {
+  SuffixTreeNode * leaf = new SuffixTreeNode {
+    node,
+    (int) text.length() - suffix,
+    suffix + node->stringDepth,
+    (int) text.length(),
+  };
+  node->children[text[leaf->edgeStart]] = leaf;
+  return leaf;
+}
+SuffixTreeNode * BreakEdge(SuffixTreeNode * node, const string& text, int start, int offset) {
+  int startChar = text[start];
+  int midChar = text[start + offset];
+  SuffixTreeNode * midNode = new SuffixTreeNode {
+    node,
+    node->stringDepth + offset,
+    start,
+    start + offset,
+  };
+  midNode->children[midChar] = node->children[startChar];
+  node->children[startChar]->parent = midNode;
+  node->children[startChar]->edgeStart += offset;
+  node->children[startChar] = midNode;
+  if (node->edgeStart == midNode->edgeStart && node->edgeEnd == midNode->edgeEnd) {
+    node->displayEdgeStart = node->edgeStart - offset - node->stringDepth;
+    node->displayEdgeEnd = node->edgeEnd - offset - node->stringDepth;
+    node->midNode = true;
+    midNode->displayEdgeStart = midNode->edgeStart - offset;
+    midNode->displayEdgeEnd = midNode->edgeEnd - offset;
+    midNode->midNode = true;
+  }
+  return midNode;
+}
+void DisplayNodeInfo(SuffixTreeNode * currentNode) {
+    if (currentNode->midNode) {
+      cout << currentNode->displayEdgeStart << " " << currentNode->displayEdgeEnd << "\n";
+    } else cout << currentNode->edgeStart << " " << currentNode->edgeEnd << "\n";
+}
+void DisplayNodeInfoDebug(SuffixTreeNode * currentNode) {
+    cout << "nodeIndex: " << currentNode->nodeIndex << " parentIndex: " <<  (currentNode->parent ? currentNode->parent->nodeIndex : NULL) <<
+    " stringDepth: " << currentNode->stringDepth <<
+    " (" << currentNode->edgeStart << ", " << currentNode->edgeEnd << ")\n";
+    if (currentNode->midNode) {
+      cout << "(" << currentNode->displayEdgeStart << ", " << currentNode->displayEdgeEnd << ")\n";
+    }
+}
+void TraverseSuffixTree(SuffixTreeNode * root) {
+  vector<SuffixTreeNode *> stack(1, root);
+  while (!stack.empty()) {
+    SuffixTreeNode * currentNode = stack.back();
+    stack.pop_back();
+    if (currentNode->nodeIndex != 0)
+      DisplayNodeInfo(currentNode);
+    for (map<char, SuffixTreeNode *>::reverse_iterator rit = currentNode->children.rbegin(); rit != currentNode->children.rend(); ++rit) {
+      stack.push_back(rit->second);
+    }
+  }
+}
 // Build suffix tree of the string text given its suffix array suffix_array
 // and LCP array lcp_array. Return the tree as a mapping from a node ID
 // to the vector of all outgoing edges of the corresponding node. The edges in the
@@ -43,9 +115,39 @@ map<int, vector<Edge> > SuffixTreeFromSuffixArray(
     const string& text) {
   map<int, vector<Edge> > tree;
   // Implement this function yourself
+  int nodeIndex = 0;
+  SuffixTreeNode * root = new SuffixTreeNode{ NULL, 0, -1, -1, nodeIndex };
+  tree[nodeIndex] = vector<Edge>();
+  int lcpPrev = 0;
+  SuffixTreeNode * currentNode = root;
+    // cout << "root node: " << nodeIndex << endl;
+    // DisplayNodeInfo(currentNode, currentNode->nodeIndex);
+  for (int i = 0; i < text.length(); i++) {
+    int suffix = suffix_array[i];
+    while (currentNode->stringDepth > lcpPrev)
+      currentNode = currentNode->parent;
+    int offset, edgeStart;
+    if (currentNode->stringDepth == lcpPrev) {
+      currentNode = CreateNewLeaf(currentNode, text, suffix);
+      currentNode->nodeIndex = ++nodeIndex;
+    }
+    else {
+      int edgeStart = suffix_array[i - 1] + currentNode->stringDepth;
+      int offset = lcpPrev - currentNode->stringDepth;
+      // cout << "edgeStart: " << edgeStart << " offset: " << offset << endl;
+      SuffixTreeNode * midNode = BreakEdge(currentNode, text, edgeStart, offset);
+      midNode->nodeIndex = ++nodeIndex;
+      currentNode = CreateNewLeaf(midNode, text, suffix);
+      currentNode->nodeIndex = ++nodeIndex;
+    }
+    // cout << "i: " << i << " suffix_array[" << i << "]: " << suffix_array[i] << " lcpPrev: " << lcpPrev << endl;
+    // TraverseSuffixTree(root);
+    if (i < text.length() - 1)
+      lcpPrev = lcp_array[i];
+  }
+  TraverseSuffixTree(root);
   return tree;
 }
-
 
 int main() {
   char buffer[200001];
@@ -59,10 +161,11 @@ int main() {
   for (int i = 0; i + 1 < text.length(); ++i) {
     scanf("%d", &lcp_array[i]);
   }
+  printf("%s\n", buffer);
   // Build the suffix tree and get a mapping from 
   // suffix tree node ID to the list of outgoing Edges.
   map<int, vector<Edge> > tree = SuffixTreeFromSuffixArray(suffix_array, lcp_array, text);
-  printf("%s\n", buffer);
+  return 0;
   // Output the edges of the suffix tree in the required order.
   // Note that we use here the contract that the root of the tree
   // will have node ID = 0 and that each vector of outgoing edges
@@ -95,6 +198,7 @@ int main() {
       continue;
     }
     const vector<Edge>& edges = tree[node];
+    // return 0;
     if (edge_index + 1 < edges.size()) {
       stack.push_back(make_pair(node, edge_index + 1));
     }

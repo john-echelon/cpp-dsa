@@ -1,9 +1,10 @@
 #include <algorithm>
+#include <cstdio>
 #include <iostream>
 #include <map>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 using std::cin;
 using std::cout;
@@ -116,14 +117,88 @@ vector<int> BuildSuffixArray(const string& text) {
   return order;
 }
 
-int main() {
-  string text;
-  cin >> text;
-  vector<int> suffix_array = BuildSuffixArray(text);
-  for (int i = 0; i < suffix_array.size(); ++i) {
-    cout << suffix_array[i] << ' ';
-    cout << text.substr(suffix_array[i], text.length() - suffix_array[i]) << endl;
+int GetLcpOfSuffixes(const string & text, int i, int j, int equal) {
+  int lcp = std::max(0, equal);
+  while (i + lcp < text.length() && j + lcp < text.length()) {
+    if (text[i + lcp] == text[j + lcp])
+      lcp++;
+    else break;
+  } 
+  return lcp;
+}
+
+vector<int> InvertSuffixArray(const vector<int>& order) {
+  vector<int> pos = vector<int>(order.size());
+  for (int i = 0; i < pos.size(); i++)
+    pos[order[i]] = i;
+  return pos;
+}
+
+vector<int> ComputeLcpArray(const string& text, const vector<int> & order) {
+  int textLen = text.length();
+  vector<int> lcpArray = vector<int>(textLen - 1);
+  int lcp = 0;
+  vector<int> posInOrder = InvertSuffixArray(order);
+  int suffix = order[0];
+  for (int i = 0; i < textLen; i++) {
+    int orderIndex = posInOrder[suffix];
+    if (orderIndex == textLen - 1) {
+      lcp = 0;
+      suffix = (suffix + 1) % textLen;
+      continue;
+    }
+    int nextSuffix = order[orderIndex + 1];
+    lcp = GetLcpOfSuffixes(text, suffix, nextSuffix, lcp - 1);
+    lcpArray[orderIndex] = lcp;
+    suffix = (suffix + 1) % textLen;
   }
+  return lcpArray;
+}
+// Data structure to store edges of a suffix tree.
+struct Edge {
+  // The ending node of this edge.
+  int node;
+  // Starting position of the substring of the text 
+  // corresponding to the label of this edge.
+  int start;
+  // Position right after the end of the substring of the text 
+  // corresponding to the label of this edge.
+  int end;
+
+  Edge(int node_, int start_, int end_) : node(node_), start(start_), end(end_) {}
+  Edge(const Edge& e) : node(e.node), start(e.start), end(e.end) {}
+};
+
+// Build suffix tree of the string text given its suffix array suffix_array
+// and LCP array lcp_array. Return the tree as a mapping from a node ID
+// to the vector of all outgoing edges of the corresponding node. The edges in the
+// vector must be sorted in the ascending order by the first character of the edge label.
+// Root must have node ID = 0, and all other node IDs must be different
+// nonnegative integers.
+//
+// For example, if text = "ACACAA$", an edge with label "$" from root to a node with ID 1
+// must be represented by Edge(1, 6, 7). This edge must be present in the vector tree[0]
+// (corresponding to the root node), and it should be the first edge in the vector 
+// (because it has the smallest first character of all edges outgoing from the root).
+map<int, vector<Edge> > SuffixTreeFromSuffixArray(
+    const vector<int>& suffix_array,
+    const vector<int>& lcp_array,
+    const string& text) {
+  map<int, vector<Edge> > tree;
+  // Implement this function yourself
+  return tree;
+}
+int main() {
+  char buffer[200001];
+  scanf("%s", buffer);
+  string text = buffer;
+  vector<int> suffix_array = BuildSuffixArray(text);
+  vector<int> lcp_array = ComputeLcpArray(text, suffix_array);
+  for (int i = 0; i < suffix_array.size(); ++i)
+    cout << suffix_array[i] << ' ';
+  cout << endl;
+  for (int i = 0; i < lcp_array.size(); ++i)
+    cout << lcp_array[i] << ' ';
   cout << endl;
   return 0;
 }
