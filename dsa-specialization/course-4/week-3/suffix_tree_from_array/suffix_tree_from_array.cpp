@@ -48,6 +48,8 @@ SuffixTreeNode * CreateNewLeaf(SuffixTreeNode * node, const string& text, int su
     (int) text.length(),
   };
   node->children[text[leaf->edgeStart]] = leaf;
+  // leaf->displayEdgeStart = suffix + node->stringDepth;
+  // leaf->displayEdgeEnd = (int) text.length();
   return leaf;
 }
 SuffixTreeNode * BreakEdge(SuffixTreeNode * node, const string& text, int start, int offset) {
@@ -63,14 +65,20 @@ SuffixTreeNode * BreakEdge(SuffixTreeNode * node, const string& text, int start,
   node->children[startChar]->parent = midNode;
   node->children[startChar]->edgeStart += offset;
   node->children[startChar] = midNode;
-  if (node->edgeStart == midNode->edgeStart && node->edgeEnd == midNode->edgeEnd) {
-    node->displayEdgeStart = node->edgeStart - offset - node->stringDepth;
-    node->displayEdgeEnd = node->edgeEnd - offset - node->stringDepth;
-    node->midNode = true;
-    midNode->displayEdgeStart = midNode->edgeStart - offset;
-    midNode->displayEdgeEnd = midNode->edgeEnd - offset;
-    midNode->midNode = true;
-  }
+  SuffixTreeNode * curr = midNode->parent;
+  // midNode->displayEdgeStart = start;
+  // midNode->displayEdgeEnd = start + offset;
+  // if (node->edgeStart == midNode->edgeStart && node->edgeEnd == midNode->edgeEnd) {
+  //   while (curr->nodeIndex != 0) {
+  //     curr->midNode = true;
+  //     curr->displayEdgeStart -= offset;
+  //     curr->displayEdgeEnd -= offset;
+  //     curr = curr->parent;
+  //   }
+  //   midNode->displayEdgeStart -= offset;
+  //   midNode->displayEdgeEnd -= offset;
+  //   midNode->midNode = true;
+  // }
   return midNode;
 }
 void DisplayNodeInfo(SuffixTreeNode * currentNode) {
