@@ -16,7 +16,6 @@ class FlowGraph {
 public:
     struct Edge {
         int from, to, capacity, flow;
-        int dist = INT_MAX;
     };
 
 private:
@@ -30,10 +29,11 @@ private:
       int dist = INT_MAX;
       int prev = -1;
     };
-
+    vector<int> matching;
 public:
-    vector<int> edgeCount;
-    explicit FlowGraph(size_t n): graph(n) {}
+    int num_left = 0;
+    explicit FlowGraph(size_t num_left, int num_right):
+      graph(num_left + num_right + 1), num_left(num_left), matching(num_left + num_right + 1, -1) {}
 
     void add_edge(int from, int to, int capacity) {
         /* Note that we first append a forward edge and then a backward edge,
@@ -43,8 +43,8 @@ public:
         Edge backward_edge = {to, from, 0, 0};
         graph[from].push_back(edges.size());
         edges.push_back(forward_edge);
-        // graph[to].push_back(edges.size());
-        // edges.push_back(backward_edge);
+        graph[to].push_back(edges.size());
+        edges.push_back(backward_edge);
     }
 
     size_t size() const {
@@ -67,10 +67,10 @@ public:
          *
          * It turns out that id ^ 1 works for both cases. Think this through! */
         edges[id].flow += flow;
-        // edges[id ^ 1].flow -= flow;
+        edges[id ^ 1].flow -= flow;
     }
 
-    int bfs(int s, int t, vector<VertexInfo> & info) {
+    int bfs(int s, vector<VertexInfo> & info, int & t) {
       std::fill(info.begin(), info.end(), VertexInfo{ INT_MAX, -1 });
       info[s].dist = 0;
       queue<std::pair<int, int>> bfs_queue;
@@ -83,12 +83,16 @@ public:
         for (int id: adj) {
           const Edge & e = get_edge(id);
           int v = e.to;
+          // cout << "from: " << e.from << " to: " << e.to << " cap " << e.capacity << " flow " << e.flow << "\n";
           if (e.from != v && s != v && info[v].dist == INT_MAX && e.capacity - e.flow > 0) {
             info[v].prev = id; // prev edge id
-            info[v].dist = 1;
+            info[v].dist = info[u].dist + 1;
             int updatedFlow = std::min(flow, e.capacity - e.flow);
-            if (v == t)
+            if (v > num_left && matching[v] == -1) {
+              // cout << "v: " << v << "\n";
+              t = v;
               return updatedFlow;
+            }
             bfs_queue.push({ v, updatedFlow });
           }
         }
@@ -96,44 +100,34 @@ public:
       return 0;
     }
 
-    int max_flow(int from, int to) {
-      int flow = 0, updatedFlow;
-      vector<VertexInfo> info(graph.size(), VertexInfo());
-      while(updatedFlow = bfs(from, to, info)) {
-        flow += updatedFlow;
-        int cur = to;
-        while (cur != from) {
-          int id = info[cur].prev;
-          add_flow(id, updatedFlow); //needs to be edge id
-          const Edge & e = get_edge(id);
-          cur = e.from;
-        }
-      }
-      return flow;
-    }
     vector<int> find_matching(int from, int to) {
       int flow = 0, updatedFlow;
-      vector<int> matching(get_ids(from).size(), -1);
       vector<VertexInfo> info(graph.size(), VertexInfo());
-      while(updatedFlow = bfs(from, to, info)) {
+
+      while (updatedFlow = bfs(from, info, to)) {
+        // cout << "updating flow: " << updatedFlow << "\n";
         flow += updatedFlow;
         int cur = to;
-        int cur_num_right;
-        if (cur != from) {
-          VertexInfo & vi = info[cur];
-          const Edge & ei = get_edge(vi.prev);
-          cur_num_right = get_edge(info[cur].prev).from;
-        }
         while (cur != from) {
           int id = info[cur].prev;
           add_flow(id, updatedFlow); //needs to be edge id
           const Edge & e = get_edge(id);
           cur = e.from;
+          if ((matching[e.from] || matching[e.to]) && e.to > num_left) {
+            matching[e.from] = e.to;
+            matching[e.to] = e.from;
+          }
           if (cur == from)
-            matching[e.to - 1] = cur_num_right - matching.size() - 1;
+            // cout << "e.from " << e.from << " e.to " << e.to << " to " << to << "\n";
+            if (!matching[to]) {
+              matching[e.to] = to;
+              matching[to] = e.to;
+            }
         }
       }
-      // cout << "flow: " << flow << std::endl;
+      // for (auto & e : edges) {
+      //   cout << "e.from " << e.from << " e.to " << e.to << " e.flow " << e.flow << "\n";
+      // }
       return matching;
     }
 };
@@ -143,66 +137,44 @@ class MaxMatching {
     // vector<vector<bool>> adj_matrix = ReadData();
     FlowGraph graph = ReadData();
     vector<int> matching = FindMatching(graph);
-    WriteResponse(matching);
+    WriteResponse(matching, graph.num_left);
   }
 
  private:
-  // vector<vector<bool>> ReadData() {
   FlowGraph ReadData() {
     int num_left, num_right;
     cin >> num_left >> num_right;
-    // vector<vector<bool>> adj_matrix(num_left, vector<bool>(num_right));
-    FlowGraph graph(num_left + num_right + 2);
-    vector<int> edgeCount(num_left, 0);
-    for (int i = 1; i <= num_left; ++i) { // 1-3
+    FlowGraph graph(num_left, num_right);
+    for (int i = 1; i <= num_left; ++i) { // num_left = 3; i 1-3
       graph.add_edge(0, i, 1);
-      // cout << "from 0, " << i << std::endl;
-      for (int j = num_left + 1; j <= num_left + num_right; ++j) { // 4-7
-        if (i == 1) {
-          graph.add_edge(j, graph.size() - 1, 1);
-          // cout << "to: " << j << ", " << graph.size() - 1 << std::endl;
-        }
+      for (int j = num_left + 1; j <= num_left + num_right; ++j) { // num_right = 4; 4-7
         int bit;
         cin >> bit;
         if (bit == 1) {
-          // cout << i << ", " << j << std::endl;
           graph.add_edge(i, j, 1);
-          edgeCount[i-1]++;
         }
       }
     }
-    graph.edgeCount = edgeCount;
-    // return adj_matrix;
     return graph;
   }
 
-  void WriteResponse(const vector<int>& matching) {
-    for (int i = 0; i < matching.size(); ++i) {
-      if (i > 0)
+  void WriteResponse(const vector<int>& matching, int num_left) {
+    for (int i = 1; i <= num_left; ++i) {
+      if (i > 1)
         cout << " ";
       if (matching[i] == -1)
         cout << "-1";
       else
-        cout << (matching[i] + 1);
+        cout << (matching[i]- num_left);
     }
     cout << "\n";
   }
 
-  // vector<int> FindMatching(const vector<vector<bool>>& adj_matrix) {
   vector<int> FindMatching(FlowGraph& graph) {
     // Replace this code with an algorithm that finds the maximum
     // matching correctly in all cases.
     int from = 0, to = graph.size() - 1;
     vector<int> matching = graph.find_matching(from, to);
-  //   int num_left = adj_matrix.size();
-  //   int num_right = adj_matrix[0].size();
-  //   vector<bool> busy_right(num_right, false);
-  //   for (int i = 0; i < num_left; ++i)
-  //     for (int j = 0; j < num_right; ++j)
-  //       if (matching[i] == -1 && !busy_right[j] && adj_matrix[i][j]) {
-  //         matching[i] = j;
-  //         busy_right[j] = true;
-  //       }
     return matching;
   }
 };

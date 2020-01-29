@@ -13,7 +13,6 @@ class FlowGraph {
 public:
     struct Edge {
         int from, to, capacity, flow;
-        int dist = INT_MAX;
     };
 
 private:
