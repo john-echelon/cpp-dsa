@@ -61,7 +61,7 @@ void ProcessPivotElement(matrix &a, vector<double> &b, vector<double> &c, double
     // For all appropriate non-pivot rows...
     for (int i = 0; i < v_size; i++) {
       double targetElement = a[i][pivot.column];
-      if (targetElement == 0 || i == pivot.row)
+      if (i == pivot.row)
         continue;
       // Subtract row by pivot row
       for (int j = 0; j < cSize; j++) {
@@ -76,7 +76,7 @@ int getPivotColumn(vector<double> &c) {
   return std::min_element(c.begin(), c.end()) - c.begin();
 }
 
-int getPivotRow(matrix &a, vector<double> &b, int pivotColumn) {
+int getPivotRow(matrix &a, vector<double> &b, int pivotColumn, bool useNegative = false) {
   int rSize = a.size();
   double enteringRatios = INT_MAX;
   int pivotRow = -1;
@@ -84,18 +84,22 @@ int getPivotRow(matrix &a, vector<double> &b, int pivotColumn) {
     if (a[i][pivotColumn] == 0)
       continue;
     double val = b[i] / a[i][pivotColumn];
-    if (val < enteringRatios && val > 0) {
+    cout << "ratio: " << b[i] << "/" << a[i][pivotColumn] << ": " << val << "\n";
+    if (val < enteringRatios && (val >= 0 || useNegative)) {
+    // if (val < enteringRatios) {
+      cout << "*ratio: " << b[i] << "/" << a[i][pivotColumn] << ": " << val << "\n";
       enteringRatios = val;
       pivotRow = i;
     }
   }
+  cout << "getPivotRow: (" << pivotRow << ", " << pivotColumn << ")\n";
   return pivotRow;
 }
 
-Position getPivotElement(matrix &a, vector<double> &b, vector<double> &c) {
+Position getPivotElement(matrix &a, vector<double> &b, vector<double> &c, int useNegative = false) {
   Position pivot(0,0);
   pivot.column = getPivotColumn(c);
-  pivot.row = getPivotRow(a, b, pivot.column);
+  pivot.row = getPivotRow(a, b, pivot.column, useNegative);
   return pivot;
 }
 
@@ -107,17 +111,33 @@ pair<int, vector<double>> solve_diet_problem(
     vector<double> c) {
 
   // Write your code here
-  vector<bool> visited(c.size(), false);
+  vector<int> visited(c.size(), 0);
   Position pivot = getPivotElement(a, b, c);
   double z = 0;
-  cout << "pivot: (" << pivot.row << ", " << pivot.column << "): " << a[pivot.row][pivot.column] << "\n";
+  cout << "pivot: (" << pivot.row << ", " << pivot.column << ")\n";
+  PrintTableau(a, b, c, z, pivot);
+  if (pivot.row == -1 ) {
+    return {-1, c};
+  }
+  if (c[getPivotColumn(c)] >= 0) {
+    return {1, c};
+  }
   do {
-    PrintTableau(a, b, c, z, pivot);
     ProcessPivotElement(a, b, c, z, pivot);
-    visited[pivot.column] = true;
+    // visited[pivot.column] = true;
+    ++visited[pivot.column];
     pivot = getPivotElement(a, b, c);
-    cout << "pivot: (" << pivot.row << ", " << pivot.column << "): " << a[pivot.row][pivot.column] << "\n";
-  } while(!visited[pivot.column]);
+    cout << "pivot: (" << pivot.row << ", " << pivot.column << ")\n";
+    PrintTableau(a, b, c, z, pivot);
+    // if (c[getPivotColumn(c)] >= 0 && visited[pivot.column] > 0) {
+    //   break;
+    // }
+    if (pivot.row == -1 ) {
+      return {-1, c};
+    }
+  // } while(visited[pivot.column] <1);
+  } while (c[getPivotColumn(c)] < 0);
+  cout << "pivot: (" << pivot.row << ", " << pivot.column << ")\n";
   PrintTableau(a, b, c, z, pivot);
   return {0, c};
 }
@@ -140,22 +160,50 @@ int main(){
   int n, m;
   cin >> n >> m;
   int mPlusSlack = m + n;
+  // int mPlusSlack = m;
   matrix A(n, vector<double>(mPlusSlack, 0));
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < m; j++) {
       cin >> A[i][j];
+      // A[i][j] *= -1;
     }
-    A[i][m + i] = 1;
+    // A[i][m + i] = 1;
   }
   vector<double> b(n);
   for (int i = 0; i < n; i++) {
     cin >> b[i];
+    // b[i] *= -1;
   }
   vector<double> c(mPlusSlack, 0);
   for (int i = 0; i < m; i++) {
     cin >> c[i];
+    // c[i] *= -1;
   }
-  pair<int, vector<double>> ans = solve_diet_problem(n, m, A, b, c);
+  // Pivot A for duality setup
+  int mSlack_pivot = mPlusSlack + 1;
+  // int mSlack_pivot = mPlusSlack;
+  matrix A_pivot(m, vector<double>(mSlack_pivot, 0));
+  vector<double> b_pivot(m);
+  vector<double> c_pivot(mSlack_pivot, 0);
+  for (int i = 0; i < m; i++) {
+    for (int j = 0; j < n; j++) {
+      A_pivot[i][j] = A[j][i];
+      // A_pivot[i][j] = A[j][i] * -1;
+    }
+    A_pivot[i][n + i] = 1;
+  }
+  for (int i = 0; i < m; i++) {
+    // b_pivot[i] = c[i];
+    b_pivot[i] = c[i] * -1;
+  }
+  for (int i = 0; i < n; i++) {
+    c_pivot[i] = b[i];
+    // c_pivot[i] = b[i] * -1;
+  }
+  c_pivot[c_pivot.size() - 1] = 1;
+
+  // pair<int, vector<double>> ans = solve_diet_problem(n, m, A, b, c);
+  pair<int, vector<double>> ans = solve_diet_problem(n, m, A_pivot, b_pivot, c_pivot);
   switch (ans.first) {
     case -1: 
       printf("No solution\n");
