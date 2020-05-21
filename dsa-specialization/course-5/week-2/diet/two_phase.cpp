@@ -93,14 +93,14 @@ int getPivotRow(matrix &a, vector<double> &b, int pivotColumn) {
   return pivotRow;
 }
 
-vector<double> getSolution(vector<double> & trace, vector<double> &b) {
-  vector<double> xValues = vector<double>(trace.size(), 0);
+vector<double> getSolution(int numVars, vector<double> & trace, vector<double> &b) {
+  vector<double> solution = vector<double>(numVars, 0);
   // get solutions
-  for (int i = 0; i < b.size(); i++) {
-    int row = trace[i];
-    xValues[i] = (row != -1) ? b[row] : 0;
+  for (int row = 0; row < b.size(); row++) {
+    int col = trace[row];
+    solution[col] = b[row];
   }
-  return xValues;
+  return solution;
 }
 bool checkConstraints(int n, int m, matrix &A_original, vector<double> &b_original, vector<double> &solutions) {
   for (int i = 0; i < n; i++) {
@@ -110,15 +110,13 @@ bool checkConstraints(int n, int m, matrix &A_original, vector<double> &b_origin
     }
     if (lhsEq < b_original[i] && b_original[i] <0)
       return false;
-    else if (lhsEq > b_original[i] && b_original[i] >0)
-      return false;
   }
   return true;
 }
 Position getPivotElement(matrix &a, vector<double> &b, vector<double> &c) {
   Position pivot(-1, 0);
   double minValue = c[std::min_element(c.begin(), c.end()) - c.begin()];
-  cout << "minValue " << minValue << "\n";
+  // cout << "minValue " << minValue << "\n";
   if (minValue > 0) {
     pivot.column = 0;
     pivot.row = getPivotRow(a, b, pivot.column);
@@ -135,15 +133,14 @@ Position getPivotElement(matrix &a, vector<double> &b, vector<double> &c) {
   }
   return pivot;
 }
-
 pair<int, vector<double>> solve_diet_problem(
     int n,
     int m,
     matrix &a,
     vector<double> &b,
     vector<double> c,
-    bool hasMixedConstraints,
     vector<double> b_original,
+    vector<double> &non_basic_vars,
     double z = 0
     ) {
 
@@ -154,28 +151,29 @@ pair<int, vector<double>> solve_diet_problem(
     A_original[i]= vector<double>(a[i]);
   }
   vector<double> pivot_trace(c.size(), -1);
-  PrintTableau(a, b, c, z);
-
+  // Uncomment to view tableau
+  // PrintTableau(a, b, c, z);
   Position pivot(0,0);
-  while (hasPivotColumn(c) || hasMixedConstraints) {
+  vector<double> solutions = getSolution(c.size(), non_basic_vars, b);
+  while (hasPivotColumn(c)) {
     pivot = getPivotElement(a, b, c);
-    hasMixedConstraints = false;
-    cout << "pivot: (" << pivot.row << ", " << pivot.column << ")\n";
+    // cout << "pivot: (" << pivot.row << ", " << pivot.column << ")\n";
     if (pivot.row == -1)
-      return {1, c};
-    if(pivot_trace[pivot.column] != -1)
-      return {1, c};
+      return { 1, solutions };
+    non_basic_vars[pivot.row] = pivot.column;
     pivot_trace[pivot.column] = pivot.row;
     ProcessPivotElement(a, b, c, z, pivot);
-    PrintTableau(a, b, c, z);
+    // Uncomment to view tableau
+    // PrintTableau(a, b, c, z);
+
     // check constraints
-    vector<double> solutions = getSolution(pivot_trace, b);
+    solutions = getSolution(c.size(), non_basic_vars, b);
     if (!checkConstraints(n, m, A_original, b_original, solutions))
-      return { -1, c};
+      return { -1, solutions };
   }
   // get solutions
-  vector<double> solutions = getSolution(pivot_trace, b);
-  return {0, solutions};
+  solutions = getSolution(c.size(), non_basic_vars, b);
+  return { 0, solutions};
 }
 /**
  * Simplex Method
@@ -200,8 +198,8 @@ pair<int, vector<double>> solve_diet_problem(
   2. Max Z = -A1 -A2 etc
   3. Eliminate the basic variables A1, A2, etc using elementary row operations from the relevant rows to get -Z + A1 + A2 = 0 
   4. Apply Simplex Method
-  5. In final tableau phase, drop artificial vars
     a. If at least 1 artificial var yields grater than zero then no feasible solution.
+  5. In final tableau phase, drop artificial vars
   6. Subsitute phase 2 objective function
   7. Restore proper form from Gaussian elimination
   Phase 2
@@ -212,11 +210,17 @@ int main(){
   cin >> n >> m;
   int mPlusSlack = m + n;
   matrix A(n, vector<double>(mPlusSlack, 0));
+
+  // Each index corresponds to the non basic vars in the tableau (row index), where each element holds the non basic var (column index)
+  vector<double> non_basic_vars(n, 0);
+
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < m; j++) {
       cin >> A[i][j];
     }
     A[i][m + i] = 1;
+    // initially slack vars are set as non basic
+    non_basic_vars[i] = m + i;
   }
   vector<double> b(n);
   vector<double> b_original(n);
@@ -237,20 +241,23 @@ int main(){
       }
       int col = A[i].size() - 1;
       A[i][col] =  1;
+      // replace initial slack var with artificial var
+      non_basic_vars[i] = col;
       hasMixedConstraints = true;
     }
   }
   int cSize = A[0].size();
-  vector<double> c(cSize, 0);
+  vector<double> c_original(cSize, 0);
   vector<double> c_phase1(cSize, 0);
-  double cSum = 0;
+  vector<double> c_phase2(cSize, 0);
   for (int i = 0; i < m; i++) {
-    cin >> c[i];
-    cSum += c[i];
-    c[i] *= -1;
+    cin >> c_original[i];
+    c_original[i] *= -1;
   }
   double z = 0;
   pair<int, vector<double>> ans;
+  c_phase2 = c_original;
+
   if (hasMixedConstraints) {
     // 3. Eliminate the basic variables A1, A2, etc using elementary row operations from the relevant rows to get -Z + A1 + A2 = 0 
     for (int i = 0; i < n; i++) {
@@ -260,38 +267,34 @@ int main(){
       for (int j = 0; j < m; j++) {
         c_phase1[j] -= A[i][j];
       }
-      // c_phase1[m + i] = cSum > 0 ? 1 : -1;
       c_phase1[m + i] = 1;
       z -= b[i];
     }
-    ans = solve_diet_problem(n, m, A, b, c_phase1, hasMixedConstraints, b_original, z);
-    z = 0;
-    for (int i = 0; i < n; i++) {
-      if (b_original[i]> 0)
-        continue;
-      // Subtract row by pivot row
-      for (int j = 0; j < mPlusSlack; j++) {
-        c[j] -= A[i][j];
-      } 
-      z -= b[i];
-    }
-  }
-  cout << "Phase 2\n";
-  ans = solve_diet_problem(n, m, A, b, c, hasMixedConstraints, b_original, z);
-  // Step 7
-  if (hasMixedConstraints && ans.first == 0) {
-    for (int i = 0; i < n; i++) {
-      for (int k = mPlusSlack; k < cSize; k++) {
-        // cout << "a[" <<i << "][" << k << "] " << A[i][k] << "\n";
-        if (A[i][k] > 0) {
-          ans.first = -1;
-          break;
-        }
+    ans = solve_diet_problem(n, m, A, b, c_phase1, b_original, non_basic_vars, z);
+    // Step 4a Check if any artificial var appears in the basis with a positive value
+    vector<double> results = ans.second;
+    for (int i = mPlusSlack; i < results.size(); ++i) {
+      if (results[i] > 0) {
+        printf("No solution\n");
+        return 0;
       }
-      if (ans.first != 0)
-        break;
+    }
+
+    // Steps 5-7: Setup tableau for Phase 2
+    z = 0;
+    for (int row = 0; row < m; ++row) {
+      int col = ans.second[row];
+      if (col >= n)
+        continue;
+      for (int j = 0; j < mPlusSlack; j++) {
+        c_phase2[j] -= A[row][j] * c_original[row];
+      } 
+      z -= b[row] * c_original[row];
     }
   }
+  // Phase 2
+  ans = solve_diet_problem(n, m, A, b, c_phase2, b_original, non_basic_vars, z);
+  vector<double> results = ans.second;
   switch (ans.first) {
     case -1: 
       printf("No solution\n");
