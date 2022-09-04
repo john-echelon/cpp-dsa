@@ -31,4 +31,5 @@
 *.exe
 *.out
 
-
+# OS specific
+*.ini
