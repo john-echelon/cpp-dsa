@@ -4,6 +4,7 @@
 #include <queue>
 #include <limits>
 #include <utility>
+#include <iostream>
 
 using namespace std;
 
@@ -48,12 +49,21 @@ public:
     // Initialize the data structures before new query,
     // clear the changes made by the previous query.
     void clear() {
-        for (int i = 0; i < workset_.size(); ++i) {
-            int v = workset_[i];
-            distance_[0][v] = distance_[1][v] = INFINITY;
-            visited_[v] = false;
+        for (int i = 0; i < n_; ++i) {
+            distance_[0][i] = distance_[1][i] = INFINITY;
+            visited_[i] = false;
         }
         workset_.clear();
+    }
+
+    int shortest_path() {
+        Len best_distance = INFINITY;
+        for(int u : workset_) {
+            if (distance_[0][u] + distance_[1][u] < best_distance) {
+                best_distance = distance_[0][u] + distance_[1][u];
+            }
+        }
+        return best_distance;
     }
 
     // Processes visit of either forward or backward search 
@@ -61,15 +71,56 @@ public:
     // relax the current distance by dist.
     void visit(Queue& q, int side, int v, Len dist) {
         // Implement this method yourself
+        Len total = 0;
+        for (int i = 0; i < adj_[side][v].size(); i++) {
+            // Relax()
+            int w = adj_[side][v][i];
+            
+            if (distance_[side][w] > dist + (Len)cost_[side][v][i])
+            {
+                distance_[side][w] = dist + (Len)cost_[side][v][i];
+                q[side].push(pair<Len, int>(distance_[side][w], w));
+            }
+        }
+
+        workset_.push_back(v);
     }
 
     // Returns the distance from s to t in the graph.
     Len query(int s, int t) {
         clear();
         Queue q(2);
-        visit(q, 0, s, 0);
-        visit(q, 1, t, 0);
+        distance_[0][s] = 0;
+        distance_[1][t] = 0;
+        q[0].push(pair<Len, int>(0, s));
+        q[1].push(pair<Len, int>(0, t));
+
+        // visit(q, 0, s, 0);
+        // visit(q, 1, t, 0);
         // Implement the rest of the algorithm yourself
+        while(true) {
+            if (q[0].empty()) {
+                break;
+            }
+            pair<Len, int> v = q[0].top();
+            q[0].pop();
+            visit(q, 0, v.second, v.first);
+            if (visited_[v.second] == true) {
+                return shortest_path();
+            }
+            visited_[v.second] = true;
+
+            if (q[1].empty()) {
+                break;
+            }
+            v = q[1].top();
+            q[1].pop();
+            visit(q, 1, v.second, v.first);
+            if (visited_[v.second] == true) {
+                return shortest_path();
+            }
+            visited_[v.second] = true;
+        }
 
         return -1;
     }
