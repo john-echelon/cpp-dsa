@@ -82,7 +82,6 @@ public:
                 q[side].push(pair<Len, int>(distance_[side][w], w));
             }
         }
-
         workset_.push_back(v);
     }
 
@@ -95,8 +94,6 @@ public:
         q[0].push(pair<Len, int>(0, s));
         q[1].push(pair<Len, int>(0, t));
 
-        // visit(q, 0, s, 0);
-        // visit(q, 1, t, 0);
         // Implement the rest of the algorithm yourself
         while(true) {
             if (q[0].empty()) {
@@ -104,10 +101,10 @@ public:
             }
             pair<Len, int> v = q[0].top();
             q[0].pop();
-            visit(q, 0, v.second, v.first);
             if (visited_[v.second] == true) {
                 return shortest_path();
             }
+            visit(q, 0, v.second, v.first);
             visited_[v.second] = true;
 
             if (q[1].empty()) {
@@ -115,10 +112,10 @@ public:
             }
             v = q[1].top();
             q[1].pop();
-            visit(q, 1, v.second, v.first);
             if (visited_[v.second] == true) {
                 return shortest_path();
             }
+            visit(q, 1, v.second, v.first);
             visited_[v.second] = true;
         }
 
