@@ -71,7 +71,6 @@ public:
     // relax the current distance by dist.
     void visit(Queue& q, int side, int v, Len dist) {
         // Implement this method yourself
-        Len total = 0;
         for (int i = 0; i < adj_[side][v].size(); i++) {
             // Relax()
             int w = adj_[side][v][i];

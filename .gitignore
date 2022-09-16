@@ -33,3 +33,5 @@
 
 # OS specific
 *.ini
+
+*.vscode
