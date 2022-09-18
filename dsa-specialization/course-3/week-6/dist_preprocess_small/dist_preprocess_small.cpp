@@ -19,7 +19,6 @@ class Graph
     // Number of nodes
     int N;
     // Source and target
-    int s, t;
     // Estimate of the distance from s to t
     int estimate = INFINITY;
     // Lists of edges outgoing from each node
@@ -104,7 +103,7 @@ class Graph
         {
             int v, c;
             tie(v, c) = incoming_edges[i][j];
-            cout << i + 1 << "-" << v + 1 << ": " << c << endl;
+            cout << v + 1 << "-" << i + 1 << ": " << c << endl;
         }
         cout << "outgoing\n";
         for (int i = 0; i < outgoing_edges.size(); i++)
@@ -115,8 +114,13 @@ class Graph
             cout << i + 1 << "-" << v + 1 << ": " << c << endl;
         }
 
+        cout << "rank\n";
         for (int i = 0; i < rank.size(); i++) {
-            cout << "rank " << i + 1 << " " << rank[i] << endl;
+            cout << i + 1 << " " << rank[i] << endl;
+        }
+        cout << "shortcuts\n";
+        for (int i = 0; i < shortcuts_.size(); i++) {
+            cout << "from " << shortcuts_[i].from  << " to " << shortcuts_[i].to << " cost " << shortcuts_[i].cost << endl;
         }
     }
     int get_n() { return N;}
@@ -163,57 +167,10 @@ class Graph
 
     // Returns distance from s to t in the graph
     int query(int u, int w) {
-        // update(u, 0, true);
-        // update(w, 0, false);
-        // s = u; 
-        // t = w;
-        // Implement the rest of the algorithm yourself
-
-        // return -1;
         return compute_distance(u, w);
     }
 
     private:
-    // Try to relax the node v using distance d either in the forward or in the backward search
-    void update(int v, int d, bool forward) {
-        // Implement this method yourself
-    }
-
-    class VertexSet
-    {
-        public:
-        VertexSet(int n = 0) : visited(n) {}
-        void resize(int n) {
-            visited.resize(n);
-        }
-        void add(int v) {
-            if (!visited[v]) {
-                vertices.push_back(v);
-                visited[v] = true;
-            }
-        }
-        const vector<int>& get() const {
-            return vertices;
-        }
-        const bool has(int v) {
-            return visited[v];
-        }
-        void clear() {
-            for (int v : vertices) {
-                visited[v] = false;
-            }
-            vertices.clear();
-        }
-
-        private:
-        vector<int> visited;
-        vector<int> vertices;
-    };
-    VertexSet visited;
-
-    // QEntry = (distance, vertex)
-    typedef pair<int,int> QEntry;
-    priority_queue<QEntry, vector<QEntry>, greater<QEntry>> queue;
 
     struct Shortcut {
         int from;
@@ -229,6 +186,7 @@ class Graph
         // Add neighbors and shortcut cover heuristics
         return (shortcuts.size() - outgoing_edges[v].size() - incoming_edges[v].size()) + mylevel;
     }
+    vector<Shortcut> shortcuts_;
 
     void set_n(int n) {
         N = n;
@@ -259,10 +217,6 @@ class Graph
         add_directed_edge(u, v, c);
     }
 
-    void finalize() {
-        // Remove unnecessary edges
-    }
-
     bool read_stdin() {
         int u,v,c,n,m;
         assert(scanf("%d %d", &n, &m) == 2);
@@ -271,7 +225,6 @@ class Graph
             assert(scanf("%d %d %d", &u, &v, &c) == 3);
             add_edge(u-1, v-1, c);
         }
-        finalize();
         return true;
     }
 
@@ -321,9 +274,14 @@ class Graph
                 if (contracted[w])
                     continue;
                 int new_weight = pair_u.second + pair_w.second;
-                if (witness_path_distance[u] > new_weight) {
+                if (witness_path_distance[w] > new_weight) {
                     add_directed_edge(u, w, new_weight);
                     // TODO: log shortcut data here
+                    Shortcut s;
+                    s.from = u;
+                    s.to = w;
+                    s.cost = new_weight;
+                    shortcuts_.push_back(s);
                 }
             }
         }
@@ -390,6 +348,7 @@ class Graph
         workset_[side].clear();
     }
 
+    // Try to relax the node v using distance d either in the forward or in the backward search
     void visit(int v, int side) {
         int w, dist;
         for (auto & p: get_adjacent(v, side == 0)) {
