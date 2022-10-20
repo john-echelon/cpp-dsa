@@ -88,7 +88,10 @@ public:
             info[v].prev = id; // prev edge id
             info[v].dist = info[u].dist + 1;
             int updatedFlow = std::min(flow, e.capacity - e.flow);
-            if (v > num_left && matching[v] == -1) {
+            // Note: Do not confused t as the sink; t is not fixed; we update t as vertex in set V (num_right)
+            // alternatively we could have added an additional vertex for the sink.
+            if (v > num_left && matching[v] == -1)
+            {
               // cout << "v: " << v << "\n";
               t = v;
               return updatedFlow;
@@ -134,7 +137,6 @@ public:
 class MaxMatching {
  public:
   void Solve() {
-    // vector<vector<bool>> adj_matrix = ReadData();
     FlowGraph graph = ReadData();
     vector<int> matching = FindMatching(graph);
     WriteResponse(matching, graph.num_left);
@@ -145,9 +147,9 @@ class MaxMatching {
     int num_left, num_right;
     cin >> num_left >> num_right;
     FlowGraph graph(num_left, num_right);
-    for (int i = 1; i <= num_left; ++i) { // num_left = 3; i 1-3
+    for (int i = 1; i <= num_left; ++i) { // e.g. num_left = 3; i 1-3
       graph.add_edge(0, i, 1);
-      for (int j = num_left + 1; j <= num_left + num_right; ++j) { // num_right = 4; 4-7
+      for (int j = num_left + 1; j <= num_left + num_right; ++j) { // e.g. num_right = 4; 4-7
         int bit;
         cin >> bit;
         if (bit == 1) {

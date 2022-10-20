@@ -50,6 +50,7 @@ string InverseBWT(const string& bwt) {
   int count2[unique_symbols] = {0}; // [A, C, G, T]
 
   int * occurrence = new(buffer3) int [length * unique_symbols];
+  // Refactor Note: using map as in bwmatching (map<char, int> starts) would have been a better choice for memory
   int * lastToFirst = new(buffer4) int [unique_symbols * length];
   char * bwt_copy = new(buffer2) char[length + 1];
   strcpy(bwt_copy, bwt.c_str());
