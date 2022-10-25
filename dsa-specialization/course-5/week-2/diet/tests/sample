@@ -1,15 +1,64 @@
-// Test Case 1
-MAX Z = -x1 + 2x2
-subject to
--x1 - x2 <= -1
-x1 <= 2
-x2 <= 2
-and x1,x2 >= 0 
+// Sourced from IOR textbook 4.4 The Simplex Method in Tabular Form 
+// Table 4.3 Initial system of equations for the Wyndor Glass Co. problem
+3 2
+1 0 
+0 2
+3 2
+4 12 18
+3 5
+Bounded solution
+2.000000000000000000 6.000000000000000000
 
-// Test Case 36
-MAX Z = -10x1
-subject to
-69x1 <= 6073
--29x1 <= -2551
--44x1 <= -3871
-and x1 >= 0 
+// Sourced from IOR textbook 4.5 Tie Breaking in the Simplex Method
+// Table 4.9 No Leaving Basic Variable—Unbounded Z
+1 2
+1 0
+4  
+3 5
+Infinity
+
+// Sourced from IOR textbook 4.6 Adapting to Other Model Forms
+// Table 4.10 Complete set of simplex tableaux to obtain all optimal BF solutions
+for the Wyndor Glass Co. problem with c2 =2
+3 2
+1 0
+0 2
+3 2
+4 12 18
+3 2
+Bounded solution
+4.000000000000000000 3.000000000000000000
+
+// Coursera test cases:
+Failed case #17/196: (Wrong answer)
+
+Input:
+2 1
+-1
+1
+-42 42
+1
+
+Your output:
+Infinity
+
+Correct output:
+Bounded solution
+42.000000000000000000
+
+Failed case #30/196: (Wrong answer)
+
+Input:
+2 3
+13 54 47
+-61 -45 2
+4382 -5006
+-97 -66 -55
+
+Your output:
+Bounded solution
+82.065573770491809569 0.000000000000000000 0.000000000000000000
+
+Correct output:
+Bounded solution
+26.996677740863785000 74.648947951273527000 0.000000000000005225

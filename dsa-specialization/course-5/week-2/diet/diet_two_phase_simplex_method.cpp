@@ -41,6 +41,7 @@ void PrintTableau(matrix &a, vector<double> &b, vector<double> &c, double &z) {
   PrintMatrix(a, b);
   PrintColumn(c);
   cout << z << "\n";
+  cout << "--------------------------------\n";
 }
 void ProcessPivotElement(matrix &a, vector<double> &b, vector<double> &c, double &z, const Position &pivot) {
     // Write your code here
@@ -84,7 +85,7 @@ int getPivotRow(matrix &a, vector<double> &b, int pivotColumn) {
     if (a[i][pivotColumn] == 0)
       continue;
     double val = b[i] / a[i][pivotColumn];
-    if (val < enteringRatios && val > 0) {
+    if (val < enteringRatios && val >= 0) {
       // cout << "*ratio: " << b[i] << "/" << a[i][pivotColumn] << ": " << val << "\n";
       enteringRatios = val;
       pivotRow = i;
@@ -152,7 +153,7 @@ pair<int, vector<double>> solve_diet_problem(
   }
   vector<double> pivot_trace(c.size(), -1);
   // Uncomment to view tableau
-  // PrintTableau(a, b, c, z);
+  PrintTableau(a, b, c, z);
   Position pivot(0,0);
   vector<double> solutions = getSolution(c.size(), non_basic_vars, b);
   while (hasPivotColumn(c)) {
@@ -164,7 +165,7 @@ pair<int, vector<double>> solve_diet_problem(
     pivot_trace[pivot.column] = pivot.row;
     ProcessPivotElement(a, b, c, z, pivot);
     // Uncomment to view tableau
-    // PrintTableau(a, b, c, z);
+    PrintTableau(a, b, c, z);
 
     // check constraints
     solutions = getSolution(c.size(), non_basic_vars, b);
@@ -282,17 +283,21 @@ int main(){
 
     // Steps 5-7: Setup tableau for Phase 2
     z = 0;
-    for (int row = 0; row < m; ++row) {
+    for (int row = 0; row < n; ++row) {
       int col = ans.second[row];
       if (col >= n)
         continue;
-      for (int j = 0; j < mPlusSlack; j++) {
+      // cout << "row " << row << endl;
+      for (int j = 0; j < mPlusSlack; j++)
+      {
+        // cout << j << " " << c_phase2.size() << " " << A[row].size() << " " << c_original.size() << endl;
         c_phase2[j] -= A[row][j] * c_original[row];
-      } 
+      }
       z -= b[row] * c_original[row];
     }
   }
   // Phase 2
+  printf("Phase 2\n");
   ans = solve_diet_problem(n, m, A, b, c_phase2, b_original, non_basic_vars, z);
   vector<double> results = ans.second;
   switch (ans.first) {
