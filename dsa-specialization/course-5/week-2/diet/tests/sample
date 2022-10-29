@@ -62,3 +62,126 @@ Bounded solution
 Correct output:
 Bounded solution
 26.996677740863785000 74.648947951273527000 0.000000000000005225
+
+Failed case #20/196: unknown signal 6
+Input:
+2 1
+50
+-70
+1600 -2240
+8
+
+Your output:
+
+stderr:
+*** Error in `./a.out': free(): invalid next size (fast): 0x0000000000ac3030 ***
+
+Correct output:
+Bounded solution
+32.000000000000000000
+
+Failed case #22/196: (Wrong answer)
+
+Input:
+2 1
+-49
+-95
+-5042 -8928
+-6
+
+Your output:
+Bounded solution
+93.978947368421046349
+
+Correct output:
+Bounded solution
+102.897959183673460000
+
+Failed case #104/196: (Wrong answer)
+
+Input:
+5 4
+-44 86 -37 8
+-28 65 -42 26
+-55 -41 56 -100
+-34 -77 -63 -67
+-18 23 38 -66
+15036 -30652 31884 -30478 39248
+22 -61 71 -93
+
+Your output:
+No solution
+
+Correct output:
+Infinity
+
+Failed case #120/196: (Wrong answer)
+
+Input:
+6 3
+90 61 70
+29 -14 41
+74 -76 -58
+-57 34 2
+-71 -6 -97
+5 58 -8
+8909 1051 -1158 -940 -4919 3610
+-72 -91 -16
+
+Your output:
+No solution
+
+Correct output:
+Bounded solution
+52.000000000000000000 59.000000000000000000 9.000000000000005300
+
+Failed case #68/196: time limit exceeded
+Input:
+4 2
+3 6
+-89 20
+-53 -39
+-2 18
+570 -6218 -6452 808
+37 -87
+
+Your output:
+
+stderr:
+
+Correct output:
+Bounded solution
+190.000000000000000000 0.000000000000000000
+
+Failed case #120/196: (Wrong answer)
+
+Input:
+6 3
+90 61 70
+29 -14 41
+74 -76 -58
+-57 34 2
+-71 -6 -97
+5 58 -8
+8909 1051 -1158 -940 -4919 3610
+-72 -91 -16
+
+Your output:
+Bounded solution
+0.000000000000000000 0.000000000000000000 19.965517241379313162
+
+Correct output:
+Bounded solution
+52.000000000000000000 59.000000000000000000 9.000000000000005300
+
+ (Time used: 0.00/2.00, memory used: 12107776/2147483648.)
+
+ MAX Z = -72x1 - 91x2 - 16x3
+subject to
+90x1 + 61x2 + 70x3 <= 8909
+29x1 - 14x2 + 41x3 <= 1051
+74x1 - 76x2 - 58x3 <= -1158
+-57x1 + 34x2 + 2x3 <= -940
+-71x1 - 6x2 - 97x3 <= -4919
+5x1 + 58x2 - 8x3 <= 3610
+and x1,x2,x3 >= 0 

@@ -5,8 +5,9 @@
 #include <vector>
 using namespace std;
 
-const int PRECISION = 20;
+const int PRECISION = 10;
 typedef vector<vector<double>> matrix;
+const double CALC_PRECISION = 0.000000001;
 
 struct Position {
     Position(int column, int row):
@@ -78,17 +79,23 @@ bool hasPivotColumn(vector<double> &c) {
 
 int getPivotRow(matrix &a, vector<double> &b, int pivotColumn) {
   int rSize = a.size();
-  double enteringRatios = INT_MAX;
+  double enteringRatios = numeric_limits<double>::max();
   int pivotRow = -1;
   for (int i = 0; i < rSize; ++i) {
     // cout << "values: " << b[i] << "/" << a[i][pivotColumn] << "\n";
     if (a[i][pivotColumn] == 0)
       continue;
     double val = b[i] / a[i][pivotColumn];
-    if (val < enteringRatios && val >= 0) {
-      // cout << "*ratio: " << b[i] << "/" << a[i][pivotColumn] << ": " << val << "\n";
+    // cout << "pivot " << i << ", " << pivotColumn << endl;
+    // cout << "entering ratio " << enteringRatios << endl;
+    // cout << "calc ratio: " << b[i] << "/" << a[i][pivotColumn] << ": " << val << endl;
+    if (val < enteringRatios && val >= 0)
+    {
+      // if (std::abs(val - enteringRatios) < CALC_PRECISION)
+      //   continue;
       enteringRatios = val;
       pivotRow = i;
+      // cout << "update pivot " << i << ", " << pivotColumn << endl;
     }
   }
   return pivotRow;
@@ -96,6 +103,7 @@ int getPivotRow(matrix &a, vector<double> &b, int pivotColumn) {
 
 vector<double> getSolution(int numVars, vector<double> & trace, vector<double> &b) {
   vector<double> solution = vector<double>(numVars, 0);
+  // cout << "numVars " << numVars << " trace " << trace.size() << " b " << b.size() << endl;
   // get solutions
   for (int row = 0; row < b.size(); row++) {
     int col = trace[row];
@@ -107,7 +115,7 @@ bool checkConstraints(int n, int m, matrix &A_original, vector<double> &b_origin
   for (int i = 0; i < n; i++) {
     double lhsEq = 0;
     for (int j = 0; j < m; j++) {
-      lhsEq += A_original[i][j] * solutions[j];
+      lhsEq += (A_original[i][j] * solutions[j]);
     }
     if (lhsEq < b_original[i] && b_original[i] <0)
       return false;
@@ -153,7 +161,7 @@ pair<int, vector<double>> solve_diet_problem(
   }
   vector<double> pivot_trace(c.size(), -1);
   // Uncomment to view tableau
-  PrintTableau(a, b, c, z);
+  // PrintTableau(a, b, c, z);
   Position pivot(0,0);
   vector<double> solutions = getSolution(c.size(), non_basic_vars, b);
   while (hasPivotColumn(c)) {
@@ -165,12 +173,12 @@ pair<int, vector<double>> solve_diet_problem(
     pivot_trace[pivot.column] = pivot.row;
     ProcessPivotElement(a, b, c, z, pivot);
     // Uncomment to view tableau
-    PrintTableau(a, b, c, z);
+    // PrintTableau(a, b, c, z);
 
     // check constraints
     solutions = getSolution(c.size(), non_basic_vars, b);
-    if (!checkConstraints(n, m, A_original, b_original, solutions))
-      return { -1, solutions };
+    // if (!checkConstraints(n, m, A_original, b_original, solutions))
+    //   return { -1, solutions };
   }
   // get solutions
   solutions = getSolution(c.size(), non_basic_vars, b);
@@ -226,10 +234,13 @@ int main(){
   vector<double> b(n);
   vector<double> b_original(n);
   bool hasMixedConstraints = false;
-  for (int i = 0; i < n; i++) {
+  int mixConstraintsCount = 0;
+  for (int i = 0; i < n; i++)
+  {
     cin >> b[i];
     b_original[i] = b[i];
     if (b[i]< 0) {
+      ++mixConstraintsCount;
       // Negative rhs; Multiply both sides of inequality by -1 reversing the direction of the inequality.
       A[i][m + i] = -1;
       b[i] *= -1;
@@ -273,31 +284,78 @@ int main(){
     }
     ans = solve_diet_problem(n, m, A, b, c_phase1, b_original, non_basic_vars, z);
     // Step 4a Check if any artificial var appears in the basis with a positive value
+    // cout << "mixConstraintsCount " << mixConstraintsCount << endl;
     vector<double> results = ans.second;
-    for (int i = mPlusSlack; i < results.size(); ++i) {
-      if (results[i] > 0) {
+    // cout << "results\n";
+    // for (int i = 0; i < results.size(); i++)
+    // {
+    //   cout << i << " " << results[i] << endl;
+    // }
+    for (int i = mPlusSlack; i < results.size(); ++i)
+    {
+      if (std::abs(results[i]) > CALC_PRECISION)
+      {
         printf("No solution\n");
         return 0;
       }
     }
 
     // Steps 5-7: Setup tableau for Phase 2
+
+    // Remove artifical var columns
+    // for (int row = 0; row < n; ++row)
+    // {
+    //   A[row].erase(A[row].end() - mixConstraintsCount);
+    // }
+    // c_original.erase(c_original.end() - mixConstraintsCount);
+    // c_phase1.erase(c_phase1.end() - mixConstraintsCount);
+    // c_phase2.erase(c_phase2.end() - mixConstraintsCount);
+    for (int row = 0; row < n; ++row)
+    {
+      for (int col = mPlusSlack; col < A[row].size(); ++col)
+        A[row][col] = 0;
+    }
+    for (int col = mPlusSlack; col < c_original.size(); ++col) {
+      c_original[col] = 0;
+      c_phase1[col] = 0;
+      c_phase2[col] = 0;
+    }
+
+    // cout << "size:  " << c_original.size() << " " << c_phase1.size() << " " << c_phase2.size() << endl;
     z = 0;
-    for (int row = 0; row < n; ++row) {
-      int col = ans.second[row];
-      if (col >= n)
-        continue;
-      // cout << "row " << row << endl;
-      for (int j = 0; j < mPlusSlack; j++)
+    vector<Position> pivots;
+    for (int j = 0; j < A[0].size() - mixConstraintsCount; j++)
+    {
+      Position pivot(0,0);
+      int count1 = 0;
+      int count0 = 0;
+      for (int i = 0; i < n; i++)
       {
-        // cout << j << " " << c_phase2.size() << " " << A[row].size() << " " << c_original.size() << endl;
-        c_phase2[j] -= A[row][j] * c_original[row];
+        if (A[i][j] == 0)
+          count0++;
+        if (A[i][j] == 1) {
+          count1++;
+          pivot.row = i;
+          pivot.column = j;
+        }
       }
-      z -= b[row] * c_original[row];
+      if (count1 == 1 && count0 == n-1)
+        pivots.push_back(pivot);
+    }
+    // Restore proper form from Gaussian Elimination via pivots (basic variables)
+    for (auto pivot: pivots) {
+      int row = pivot.row;
+      int col = pivot.column;
+      for (int j = 0; j < c_phase2.size() - mixConstraintsCount; j++)
+      {
+        // cout << c_phase2[j] << " -= " << A[row][j] << " * " << c_original[col] << endl;
+        c_phase2[j] -= (A[row][j] * c_original[col]);
+      }
+      z -= (b[row] * c_original[col]);
     }
   }
   // Phase 2
-  printf("Phase 2\n");
+  // printf("Phase 2\n");
   ans = solve_diet_problem(n, m, A, b, c_phase2, b_original, non_basic_vars, z);
   vector<double> results = ans.second;
   switch (ans.first) {
