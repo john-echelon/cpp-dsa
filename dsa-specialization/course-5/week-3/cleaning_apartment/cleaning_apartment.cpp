@@ -99,14 +99,15 @@ struct ConvertHampathToSat
     for (int a = 1; a < n; a++) {
       for (int b = a+1; b <= n; b++) {
         if (edgeMap.find({a, b}) == edgeMap.end()) {
-          int idx_a = toIndexVar(a, n);
-          int idx_b = toIndexVar(b, n);
-          for (int i = idx_a; i < idx_a + n; i++)
-            for (int j = idx_b+1; j <= idx_b+n; j++) {
-              ss << -i << " " << -j << " 0\n";
-              numClauses++;
-              printInfo(numClauses, ss);
-            }
+          int i = toIndexVar(a, n);
+          int j = toIndexVar(b, n);
+          for (int k = 0; k < n - 1; k++){
+            ss << -(i+k) << " " << -(j+k+1) << " 0\n";
+            numClauses++;
+            ss << -(j+k) << " " << -(i+k+1) << " 0\n";
+            numClauses++;
+            printInfo(numClauses, ss);
+          }
         }
       }
     }
