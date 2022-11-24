@@ -111,17 +111,7 @@ bool SolveEquation(Matrix &a, Column &b) {
   for (int j = 0; j < a.size(); j++)
   {
     Position pivot_element = SelectPivotElement(a, j);
-
-    if (pivot_element.row == -1) {
-      unbounded = true;
-      break;
-    }
-
-    if (SwapLines(a, b, pivot_element)) {
-      unbounded = true;
-      break;
-    }
-
+    SwapLines(a, b, pivot_element);
     ProcessPivotElement(a, b, pivot_element);
   }
   return unbounded;
@@ -178,8 +168,6 @@ pair<int, vector<double>> solve_diet_problem(
     }
 
     bool unbounded2 = SolveEquation(a_phase2, b_phase2);
-    if (unbounded2)
-      continue;
     for (int j = 0; j < n + m + 1; j++) {
       double sum = 0;
 
