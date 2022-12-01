@@ -1,3 +1,4 @@
+// Good job! (Max time used: 0.07/2.00, max memory used: 19156992/2147483648.)
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -23,26 +24,26 @@ struct Position {
 
 vector<vector<int> > PowerSet(int n, int setSize)
 {
-    vector<vector<int>> subset;
-    subset.push_back(vector<int>());
-    for (long i = 0; i < n; i++)
-    {
-      vector< vector<int> > temp = subset;  //making a copy of given 2-d vector.
-      for (int j = 0; j < temp.size(); j++)
-          temp[j].push_back(i);   // adding set[i] element to each subset of subsetTemp. like adding {2}(in 2nd iteration  to {{},{1}} which gives {{2},{1,2}}.
+  vector<vector<int>> subset;
+  subset.push_back(vector<int>());
+  for (long i = 0; i < n; i++)
+  {
+    vector< vector<int> > temp = subset;  //making a copy of given 2-d vector.
+    for (int j = 0; j < temp.size(); j++)
+        temp[j].push_back(i);   // adding set[i] element to each subset of subsetTemp. like adding {2}(in 2nd iteration  to {{},{1}} which gives {{2},{1,2}}.
 
-      for (int j = 0; j < temp.size(); j++)
-          subset.push_back( temp[j] ); 
-    }
-    vector<vector<int>> subsets;
-    for (auto i : subset)
-    {
-      if (i.size() == setSize)
-          subsets.emplace_back(i);
-    }
+    for (int j = 0; j < temp.size(); j++)
+        subset.push_back( temp[j] ); 
+  }
+  vector<vector<int>> subsets;
+  for (auto i : subset)
+  {
+    if (i.size() == setSize)
+        subsets.emplace_back(i);
+  }
 
-    return subsets;
-    }
+  return subsets;
+}
 
 void PrintMatrix(const Matrix &m, vector<double> &b) {
     int rSize = m.size();

@@ -1,3 +1,4 @@
+// Good job! (Max time used: 0.00/1.00, max memory used: 11366400/4294967296.)
 #include <ios>
 #include <iostream>
 #include <sstream>

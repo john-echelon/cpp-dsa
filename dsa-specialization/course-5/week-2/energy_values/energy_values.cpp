@@ -1,3 +1,4 @@
+// Good job! (Max time used: 0.00/1.00, max memory used: 11948032/2147483648.)
 #include <cmath>
 #include <iostream>
 #include <vector>

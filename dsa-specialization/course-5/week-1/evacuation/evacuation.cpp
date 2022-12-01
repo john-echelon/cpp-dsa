@@ -1,3 +1,4 @@
+// Good job! (Max time used: 0.00/1.00, max memory used: 9232384/536870912.)
 #include <algorithm>
 #include <bits/stdc++.h> 
 #include <iostream>
