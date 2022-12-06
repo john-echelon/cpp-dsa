@@ -33,7 +33,7 @@ void explore(int v, vector<vector<int>> & adj, VertexInfo info[], int cc, vector
     if (!info[neighbors[i]].visited) {
       explore(neighbors[i], adj, info, cc, order);
     }
-    // Detect cycle if post for neighbor is greater or has not been posted yet.
+    // Detect cycle if post is greater than neighbor or has not been posted yet.
     else if(info[v].post > info[neighbors[i]].post || info[neighbors[i]].post == 0) {
       // cout << "\n cycle on " << v + 1 << " " << neighbors[i] + 1 << "\n"; 
       isCycle = true;
