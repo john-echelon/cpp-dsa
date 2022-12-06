@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iostream>
 #include <vector>
-#include <cstdio>
+#include <cmath>
 using namespace std;
 
 const int PRECISION = 20;
