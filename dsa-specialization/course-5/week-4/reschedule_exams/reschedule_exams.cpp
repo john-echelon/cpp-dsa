@@ -36,13 +36,14 @@ struct ConvertGSMNetworkProblemToSat
 
     /*
     enforce the following constraints:
-    1. every node is given at least one color,
-    2. every node is given at most one color, and
+    1. every node is given at least one color, excluding initial color
+    2. every node is given at most one color, excluding initial color
     3. no two adjacent nodes are given the same color.
     */
 
     // Encode clauses for constraint 1
-    // 1. every node is given at least one color
+    // 1. every node is given at least one color, excluding initial color
+    // e.g. if node is initially red: -x0 OR -x0 
     // ss << "C1:\n";
     for (int i = 1; i <= numVars; i += 3)
     {
@@ -61,7 +62,8 @@ struct ConvertGSMNetworkProblemToSat
       // ss << c.firstVar << " " << c.secondVar << " 0\n";
     }
     // Encode clauses for constraint 2
-    // 2. every node is given at most one color
+    // 2. every node is given at most one color, excluding initial color
+    // e.g. node can be either green or blue: (x1 OR x2) AND (-x1 OR -x2)
     // ss << "C2:\n";
     for (int i = 1; i <= numVars; i+=3) {
       Clause c;
@@ -81,11 +83,11 @@ struct ConvertGSMNetworkProblemToSat
         c.secondVar = i + 1;
       }
       formula.clauses.emplace_back(c);
-      ss << c.firstVar << " " << c.secondVar << " 0\n";
+      // ss << c.firstVar << " " << c.secondVar << " 0\n";
       c.firstVar *= -1;
       c.secondVar *= -1;
       formula.clauses.emplace_back(c);
-      ss << c.firstVar << " " << c.secondVar << " 0\n";
+      // ss << c.firstVar << " " << c.secondVar << " 0\n";
     }
     // ss << "edges\n";
     // Encode clauses for constraint 3
